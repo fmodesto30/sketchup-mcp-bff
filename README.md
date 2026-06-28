@@ -13,6 +13,14 @@ browser ──▶ :8782  (sketchup-mcp-bff: server.py + web/)
                  └── proxy /api/* /img/* + páginas-vitrine ──▶ :8781 (studio_dashboard.py)
 ```
 
+> **Dois frontends, um BFF.** Há duas UIs neste repo, lado a lado:
+> - **`web/`** — cockpit vanilla (zero-build), servido direto pelo BFF na `:8782`.
+> - **`frontend/`** — **AI Cockpit em React + TypeScript** (Vite, Tailwind, Radix, TanStack Query),
+>   com agentes, runs, **logs ao vivo (SSE)**, workflows, modelos locais (Ollama) e decisões.
+>   Ver [`frontend/README.md`](frontend/README.md). O BFF ganhou endpoints próprios
+>   (`/api/status`, `/api/models`, `/api/agents`, `/api/runs`, `/api/workflows`, …) em
+>   [`cockpit_api.py`](cockpit_api.py) — o frontend nunca fala com Ollama/agents direto, só com `/api/*`.
+
 ## Por que um BFF
 
 O código do dashboard vive no repositório `GFCDOTA/sketchup-mcp` (que este projeto **não
