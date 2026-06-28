@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import cockpit_api  # endpoints "AI Cockpit" (status/models/agents/runs/...) montados aqui
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -104,6 +105,9 @@ class H(BaseHTTPRequestHandler):
         body = None
         if method == "POST":
             length = int(self.headers.get("Content-Length", 0) or 0)
+            if length > cockpit_api.MAX_BODY:   # teto de corpo (anti-DoS)
+                self._json(413, {"error": "payload_too_large"})
+                return
             body = self.rfile.read(length) if length else b""
         req = Request(url, data=body, method=method)
         if self.headers.get("Content-Type"):
@@ -123,6 +127,8 @@ class H(BaseHTTPRequestHandler):
 
     # ── verbs ────────────────────────────────────────────────────────────────
     def do_GET(self):
+        if cockpit_api.dispatch(self):   # rotas nativas do cockpit (antes do proxy)
+            return
         path = urlparse(self.path).path
         if _is_proxy(path):
             self._proxy(path, "GET")
@@ -130,9 +136,15 @@ class H(BaseHTTPRequestHandler):
             self._serve_static(path)
 
     def do_HEAD(self):
-        self.do_GET()
+        path = urlparse(self.path).path
+        if _is_proxy(path):
+            self._proxy(path, "GET")
+        else:
+            self._serve_static(path)
 
     def do_POST(self):
+        if cockpit_api.dispatch(self):   # rotas nativas do cockpit (antes do proxy)
+            return
         path = urlparse(self.path).path
         if _is_proxy(path):
             self._proxy(path, "POST")
@@ -143,8 +155,9 @@ class H(BaseHTTPRequestHandler):
 def main() -> int:
     if not (WEB / "index.html").is_file():
         print(f"[bff] AVISO: {WEB/'index.html'} não encontrado — rode da raiz do repo.")
-    srv = ThreadingHTTPServer(("0.0.0.0", PORT), H)
-    print(f"INTERIOR STUDIO BFF  ->  http://127.0.0.1:{PORT}/")
+    host = os.environ.get("BFF_HOST", "127.0.0.1")   # localhost por padrão (não expõe na LAN)
+    srv = ThreadingHTTPServer((host, PORT), H)
+    print(f"INTERIOR STUDIO BFF  ->  http://{host}:{PORT}/")
     print(f"  upstream (proxy /api/*) -> {UPSTREAM}" + ("   [MOCK ON]" if MOCK else ""))
     print(f"  servindo estatico de    -> {WEB}")
     try:

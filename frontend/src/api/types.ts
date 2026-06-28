@@ -1,0 +1,488 @@
+// src/api/types.ts
+// Tipos canônicos para o BFF do Interior Studio (AI Cockpit).
+// O frontend consome SÓ /api/* — estes tipos espelham o contrato do BFF.
+
+/* ───────────────────────────── Primitivos / utilitários ───────────────────────────── */
+
+/** Timestamp ISO-8601 (ex.: "2026-06-28T12:34:56.000Z"). */
+export type IsoString = string;
+
+/** Envelope comum: a maioria das respostas carrega um flag de sucesso. */
+export interface OkResponse {
+  ok: boolean;
+}
+
+/* ───────────────────────────── GET /api/status ───────────────────────────── */
+
+/** Saúde de um serviço a montante (upstream legado, ollama, etc.). */
+export interface ServiceHealth {
+  ok: boolean;
+  url: string;
+}
+
+/** Saúde específica do Ollama, com contagem de modelos disponíveis. */
+export interface OllamaHealth extends ServiceHealth {
+  models: number;
+}
+
+/** GET /api/status — visão geral de conectividade. */
+export interface StatusResponse {
+  upstream: ServiceHealth;
+  ollama: OllamaHealth;
+  time: IsoString;
+}
+
+/* ───────────────────────────── GET /api/models ───────────────────────────── */
+
+/** Metadados de um modelo Ollama (campos opcionais quando indisponíveis). */
+export interface ModelInfo {
+  name: string;
+  family?: string;
+  sizeBytes?: number;
+  parameterSize?: string;
+  quantization?: string;
+  modifiedAt?: IsoString;
+}
+
+/** GET /api/models — lista de modelos; `source` indica origem da listagem. */
+export interface ModelsResponse {
+  ok: boolean;
+  source: "ollama" | "none";
+  models: ModelInfo[];
+  hint?: string;
+}
+
+/* ───────────────────────────── POST /api/models/chat ───────────────────────────── */
+
+/** Papel de uma mensagem de chat. */
+export type ChatRole = "system" | "user" | "assistant";
+
+/** Uma mensagem na conversa enviada ao modelo. */
+export interface ChatMessage {
+  role: ChatRole;
+  content: string;
+}
+
+/** Resposta do assistente (papel fixo). */
+export interface AssistantMessage {
+  role: "assistant";
+  content: string;
+}
+
+/** POST /api/models/chat — requisição. */
+export interface ChatRequest {
+  model: string;
+  messages: ChatMessage[];
+  stream?: boolean;
+}
+
+/** POST /api/models/chat — resposta. */
+export interface ChatResponse {
+  ok: boolean;
+  model: string;
+  message: AssistantMessage;
+  tookMs: number;
+}
+
+/* ───────────────────────────── GET /api/agents ───────────────────────────── */
+
+/** Estado de execução de um agente. */
+export type AgentStatus = "idle" | "working" | "error" | "online";
+
+/** Um agente do cockpit multi-agente. */
+export interface Agent {
+  id: string;
+  name: string;
+  role: string;
+  umbrella: string;
+  status: AgentStatus;
+  model?: string;
+  online: boolean;
+  tools: string[];
+  lastRunId?: string;
+  message?: string;
+}
+
+/** GET /api/agents — lista de agentes. */
+export interface AgentsResponse {
+  agents: Agent[];
+}
+
+/* ───────────────────────────── POST /api/agents/:id/run ───────────────────────────── */
+
+/** POST /api/agents/:id/run — requisição. */
+export interface AgentRunRequest {
+  input?: string;
+}
+
+/** Resposta padrão de disparo: confirma e devolve o id da run criada. */
+export interface RunTriggerResponse {
+  ok: boolean;
+  runId: string;
+}
+
+/* ───────────────────────────── GET /api/runs ───────────────────────────── */
+
+/** Natureza da run: disparo de um agente isolado ou de um workflow. */
+export type RunKind = "agent" | "workflow";
+
+/** Estado de uma run. */
+export type RunStatus = "queued" | "running" | "succeeded" | "failed";
+
+/** Uma execução (agente ou workflow), forma de lista. */
+export interface Run {
+  id: string;
+  kind: RunKind;
+  agentId?: string;
+  agentName?: string;
+  workflowId?: string;
+  title: string;
+  status: RunStatus;
+  model?: string;
+  startedAt: IsoString;
+  finishedAt?: IsoString;
+  durationMs?: number;
+}
+
+/** GET /api/runs — lista de runs. */
+export interface RunsResponse {
+  runs: Run[];
+}
+
+/* ───────────────────────────── GET /api/runs/:id ───────────────────────────── */
+
+/** Estado de um passo dentro de uma run. */
+export type RunStepStatus = "pending" | "running" | "done" | "failed";
+
+/** Um passo (etapa) de uma run. */
+export interface RunStep {
+  name: string;
+  status: RunStepStatus;
+  tone?: string;
+  startedAt?: IsoString;
+  finishedAt?: IsoString;
+}
+
+/** Run detalhada: a Run de lista + passos, entradas/saídas e artefatos. */
+export interface RunDetail extends Run {
+  steps: RunStep[];
+  inputs?: Record<string, unknown>;
+  outputs?: Record<string, unknown>;
+  artifactIds: string[];
+}
+
+/** GET /api/runs/:id — run detalhada. */
+export interface RunDetailResponse {
+  run: RunDetail;
+}
+
+/* ───────────────────────────── GET /api/runs/:id/logs ───────────────────────────── */
+
+/** Severidade de uma linha de log. */
+export type LogLevel = "debug" | "info" | "warn" | "error" | "success";
+
+/** Uma linha de log (item do SSE ou do dump final). */
+export interface LogLine {
+  ts: IsoString;
+  level: LogLevel;
+  agent?: string;
+  message: string;
+}
+
+/**
+ * GET /api/runs/:id/logs (modo normal, run concluída) — dump de logs.
+ * No modo SSE, o stream emite eventos `LogLine` individuais.
+ */
+export interface RunLogsResponse {
+  logs: LogLine[];
+}
+
+/* ───────────────────────────── GET /api/artifacts ───────────────────────────── */
+
+/** Tipo de artefato gerado por uma run. */
+export type ArtifactType = "render" | "skp" | "report" | "json" | "image";
+
+/** Um artefato produzido pelo pipeline. */
+export interface Artifact {
+  id: string;
+  type: ArtifactType;
+  name: string;
+  path: string;
+  runId?: string;
+  sizeKb?: number;
+  createdAt?: IsoString;
+  url?: string;
+}
+
+/** GET /api/artifacts — lista de artefatos. */
+export interface ArtifactsResponse {
+  artifacts: Artifact[];
+}
+
+/* ───────────────────────────── GET /api/decisions ───────────────────────────── */
+
+/** Estado de uma decisão pendente de input humano. */
+export type DecisionStatus = "pending" | "answered" | "skipped";
+
+/** Uma decisão/gate que aguarda escolha do operador. */
+export interface Decision {
+  id: string;
+  type: string;
+  title: string;
+  question: string;
+  options?: string[];
+  status: DecisionStatus;
+  source: string;
+  createdAt?: IsoString;
+}
+
+/** GET /api/decisions — lista de decisões. */
+export interface DecisionsResponse {
+  decisions: Decision[];
+}
+
+/** POST /api/decisions/:id/respond — requisição (escolha ou texto livre). */
+export interface DecisionRespondRequest {
+  choice?: string;
+  answer?: string;
+}
+
+/** POST /api/decisions/:id/respond — resposta. */
+export type DecisionRespondResponse = OkResponse;
+
+/* ───────────────────────────── GET /api/workflows ───────────────────────────── */
+
+/** Estado geral de um workflow. */
+export type WorkflowStatus = "idle" | "running" | "done";
+
+/** Estado de um passo de workflow (vocabulário próprio: doing≠running). */
+export type WorkflowStepStatus = "done" | "doing" | "pending";
+
+/** Um passo declarado de um workflow. */
+export interface WorkflowStep {
+  key: string;
+  label: string;
+  status: WorkflowStepStatus;
+  icon?: string;
+}
+
+/** Um workflow (pipeline) disponível no cockpit. */
+export interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  whenToUse: string;
+  status: WorkflowStatus;
+  steps: WorkflowStep[];
+  tools: string[];
+  inputs: string[];
+  outputs: string[];
+  risks?: string[];
+  lastRunId?: string;
+}
+
+/** GET /api/workflows — lista de workflows. */
+export interface WorkflowsResponse {
+  workflows: Workflow[];
+}
+
+/** POST /api/workflows/:id/run — requisição (sem corpo relevante). */
+export type WorkflowRunRequest = Record<string, never>;
+
+/** POST /api/workflows/:id/run — resposta (mesmo envelope de disparo). */
+export type WorkflowRunResponse = RunTriggerResponse;
+
+/* ═════════════════════════════ GET /api/state (payload legado) ═════════════════════════════ */
+/* Mantido para as telas existentes; nomes em snake_case espelham o dashboard legado. */
+
+/** Status de um item de pipeline dentro de um foco ativo. */
+export interface PipelineStep {
+  icon: string;
+  label: string;
+  status: string;
+}
+
+/** Um foco ativo no overview (ambiente em andamento). */
+export interface ActiveFocus {
+  env_label: string;
+  env_icon: string;
+  label: string;
+  state_label: string;
+  reason: string;
+  next: string;
+  pipeline: PipelineStep[];
+}
+
+/** Progresso de um ambiente (room) no overview. */
+export interface OverviewRoom {
+  key: string;
+  label: string;
+  icon: string;
+  done: number;
+  total: number;
+  assets: unknown[];
+}
+
+/** Bloco `overview` do estado legado. */
+export interface StateOverview {
+  project: string;
+  active_focuses: ActiveFocus[];
+  rooms: OverviewRoom[];
+}
+
+/** Bloco `factory` — ciclo de produção corrente. */
+export interface StateFactory {
+  cycle_id: string;
+  room: string;
+  asset: string;
+  title: string;
+  status: string;
+  next_action: string;
+  references: unknown[];
+}
+
+/** Lead (ou sub) de uma umbrella de agentes. */
+export interface AgentFace {
+  id: string;
+  face: string;
+  label: string;
+  status: string;
+  message: string;
+  online: boolean;
+}
+
+/** Uma umbrella de agentes (lead + subordinados). */
+export interface AgentUmbrella {
+  id: string;
+  label: string;
+  lead: AgentFace;
+  subs: AgentFace[];
+}
+
+/** Bloco `agents` do estado legado. */
+export interface StateAgents {
+  umbrellas: AgentUmbrella[];
+  feed: unknown[];
+  metrics: Record<string, unknown>;
+}
+
+/** Uma tarefa do backlog. */
+export interface BacklogTask {
+  mt: string;
+  what: string;
+  status: string;
+  geo: boolean;
+  done: boolean;
+}
+
+/** Bloco `backlog` — contagens + tarefas. */
+export interface StateBacklog {
+  total: number;
+  geo: number;
+  pele: number;
+  done: number;
+  tasks: BacklogTask[];
+}
+
+/** Uma reivindicação (claim) de worktree por um owner. */
+export interface SessionClaim {
+  mt: string;
+  desc: string;
+  owner: string;
+  status: string;
+}
+
+/** Bloco `sessions` — worktrees ativos e claims. */
+export interface StateSessions {
+  worktrees: string[];
+  claims: SessionClaim[];
+}
+
+/** Um item proposto dentro de uma proposta. */
+export interface ProposalItem {
+  asset: string;
+  priority: string;
+  reason: string;
+}
+
+/** Uma proposta pendente de um ambiente. */
+export interface Proposal {
+  id: string;
+  type: string;
+  room_name: string;
+  area_m2: number;
+  items: ProposalItem[];
+}
+
+/** Bloco `proposals` — propostas aguardando decisão. */
+export interface StateProposals {
+  pending: Proposal[];
+}
+
+/** Uma referência visual do refpack. */
+export interface RefpackReference {
+  id: string;
+  title: string;
+  source: string;
+  why_good: string;
+  status: string;
+  og_image: string;
+}
+
+/** Bloco `refpack` — tema, direção e referências. */
+export interface StateRefpack {
+  theme: string;
+  direction: string;
+  references: RefpackReference[];
+  counts: Record<string, number>;
+}
+
+/** Um render listado no estado legado. */
+export interface RenderEntry {
+  name: string;
+  theme: string;
+  sub: string;
+  kb: number;
+}
+
+/** Bloco `learning` — regras novas e anti-padrões aprendidos. */
+export interface StateLearning {
+  new_rules: unknown[];
+  anti_patterns: unknown[];
+}
+
+/** Uma entrada da base de conhecimento. */
+export interface KnowledgeEntry {
+  title: string;
+  preview: string;
+}
+
+/** Bloco `knowledge` — entradas indexadas. */
+export interface StateKnowledge {
+  entries: KnowledgeEntry[];
+}
+
+/** Bloco `consult` — estado da ponte de consulta. */
+export interface StateConsult {
+  status: string;
+  bridge_mode: string;
+}
+
+/** GET /api/state — payload legado completo consumido pelas telas. */
+export interface StudioState {
+  // todos opcionais: o BFF normaliza falha do upstream para {} (use optional chaining)
+  overview?: StateOverview;
+  factory?: StateFactory;
+  agents?: StateAgents;
+  backlog?: StateBacklog;
+  sessions?: StateSessions;
+  proposals?: StateProposals;
+  refpack?: StateRefpack;
+  renders?: RenderEntry[];
+  learning?: StateLearning;
+  knowledge?: StateKnowledge;
+  consult?: StateConsult;
+}
+
+/** Alias de compat: resposta de disparo de run. */
+export type RunResponse = RunTriggerResponse;

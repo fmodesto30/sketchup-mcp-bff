@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── design tokens (HSL triplets → suportam utilitários /opacity) ──────────── */
+@layer base {
+  :root {
+    --background: 222 14% 5%;
+    --foreground: 222 16% 92%;
+    --card: 225 11% 9%;
+    --card-foreground: 222 16% 92%;
+    --popover: 225 12% 10%;
+    --popover-foreground: 222 16% 92%;
+    --primary: 40 47% 60%; /* gold */
+    --primary-foreground: 40 45% 8%;
+    --secondary: 225 10% 14%;
+    --secondary-foreground: 222 16% 92%;
+    --muted: 225 10% 13%;
+    --muted-foreground: 222 9% 64%;
+    --accent: 225 10% 16%;
+    --accent-foreground: 222 16% 92%;
+    --destructive: 4 82% 69%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 9% 17%;
+    --input: 222 9% 17%;
+    --ring: 215 100% 71%;
+    --radius: 12px;
+
+    /* marca + status */
+    --gold: 40 47% 60%;
+    --blue: 215 100% 71%;
+    --ok: 152 56% 60%;
+    --warn: 44 73% 65%;
+    --danger: 4 82% 69%;
+    --purple: 268 54% 63%;
+    --orange: 28 84% 67%;
+    --surface: 225 11% 9%;
+    --surface-2: 225 10% 12%;
+    --faint: 222 8% 46%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(1200px 620px at 8% -10%, hsl(265 20% 12% / 0.55) 0%, transparent 55%),
+      radial-gradient(1000px 560px at 100% 0%, hsl(210 30% 12% / 0.5) 0%, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  ::selection {
+    background: hsl(var(--gold) / 0.3);
+    color: #fff;
+  }
+}
+
+/* ── scrollbars ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(222 9% 26%);
+    background-clip: padding-box;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
