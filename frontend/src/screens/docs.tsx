@@ -50,15 +50,27 @@ function ArchFlow() {
     </div>
   );
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
       <Node icon={AppWindow} title="Cockpit" sub="React · aberto em :8782" />
       <Arrow label="/api/*" />
-      <Node icon={Boxes} title="BFF" sub="server.py + cockpit_api" accent />
+      {/* caixa do BFF — o Runner vive DENTRO dele (não é serviço externo) */}
+      <div className="rounded-md border border-primary/40 bg-background p-2.5">
+        <div className="mb-1.5 flex items-center gap-2 px-0.5">
+          <Boxes className="size-4 text-primary" />
+          <b className="text-sm">BFF</b>
+          <i className="font-mono text-[10.5px] not-italic text-muted-foreground/60">server.py + cockpit_api</i>
+        </div>
+        <div className="flex items-center gap-2 rounded border border-border bg-card px-2.5 py-1.5">
+          <Terminal className="size-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium">Runner</span>
+          <span className="font-mono text-[10px] not-italic text-muted-foreground/50">runs · logs SSE · interno</span>
+        </div>
+      </div>
       <Arrow label="integra" />
+      {/* serviços externos (processos separados, com porta) */}
       <div className="flex flex-col gap-2">
         <Node icon={Cpu} title="Ollama" sub=":11434 · modelos" />
         <Node icon={Network} title="Upstream" sub=":8781 · dados" />
-        <Node icon={Terminal} title="Runner" sub="runs · logs SSE" />
       </div>
     </div>
   );
