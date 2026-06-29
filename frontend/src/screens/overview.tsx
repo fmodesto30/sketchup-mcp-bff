@@ -23,6 +23,7 @@ const ICON_TONE: Record<Tone, string> = {
   ok: "bg-ok/12 text-ok", info: "bg-blue/12 text-blue", warn: "bg-warn/12 text-warn",
   danger: "bg-danger/12 text-danger", neutral: "bg-secondary text-muted-foreground",
 };
+const AGENT_EMOJI: Record<string, string> = { PM: "🧭", "Team Lead": "🛠️", Arquiteto: "📐" };
 
 /** Mapeia um evento de atividade para a seção da doc "Como Funciona" que o explica. */
 function docAnchor(ev: FileActivityEvent): string {
@@ -51,9 +52,21 @@ export default function Overview() {
   const recentRuns = (runs.data?.runs ?? []).slice(0, 6);
   const activeWf = (workflows.data?.workflows ?? []).find((w) => w.status === "running");
   const ollamaOk = !!status.data?.ollama.ok;
+  const agentList = agents.data?.agents ?? [];
 
-  const metrics: { label: string; value: React.ReactNode; icon: LucideIcon; tone: Tone; pulse?: boolean }[] = [
-    { label: "Agentes online", value: agents.isLoading ? "—" : `${online}/${total}`, icon: Bot, tone: online ? "ok" : "neutral", pulse: online > 0 },
+  const agentFaces = (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {agentList.map((a) => (
+        <span key={a.id} title={`${a.name} · ${a.online ? "online" : "offline"}`} className={cn("relative text-lg leading-none", !a.online && "opacity-40 grayscale")}>
+          {AGENT_EMOJI[a.role] ?? "🤖"}
+          <span className={cn("absolute -right-1 -top-0.5 size-1.5 rounded-full ring-1 ring-card", a.online ? "bg-ok" : "bg-muted-foreground/40")} />
+        </span>
+      ))}
+    </div>
+  );
+
+  const metrics: { label: string; value: React.ReactNode; icon: LucideIcon; tone: Tone; pulse?: boolean; extra?: React.ReactNode }[] = [
+    { label: "Agentes online", value: agents.isLoading ? "—" : `${online}/${total}`, icon: Bot, tone: online ? "ok" : "neutral", pulse: online > 0, extra: agentList.length ? agentFaces : undefined },
     { label: "Runs ativos", value: runs.isLoading ? "—" : running, icon: Activity, tone: running ? "info" : "neutral", pulse: running > 0 },
     { label: "Decisões pendentes", value: decisions.isLoading ? "—" : pending.length, icon: Inbox, tone: pending.length ? "warn" : "neutral", pulse: pending.length > 0 },
     { label: "Modelos locais", value: ollamaOk ? status.data!.ollama.models : "off", icon: Cpu, tone: ollamaOk ? "ok" : "neutral" },
@@ -96,6 +109,7 @@ export default function Overview() {
             </div>
             <div className={cn("mt-3 font-mono text-3xl font-bold leading-none tracking-tight", VAL_TONE[m.tone])}>{m.value}</div>
             <div className="mt-1.5 text-[11px] uppercase tracking-wide text-muted-foreground/60">{m.label}</div>
+            {m.extra}
           </motion.div>
         ))}
       </motion.div>

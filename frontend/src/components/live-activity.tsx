@@ -1,7 +1,8 @@
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Boxes, Network, Cpu, Terminal, Bot, AppWindow, Hand, Radio,
-  ArrowRightLeft, FileDown, Eye, Play, AlertTriangle, HelpCircle, type LucideIcon,
+  ArrowRightLeft, FileDown, Eye, Play, AlertTriangle, HelpCircle, Info, type LucideIcon,
 } from "lucide-react";
 import type { FileActivityEvent, FileSource, FileOp } from "@/api/types";
 import { cn, timeAgo } from "@/lib/utils";
@@ -49,7 +50,7 @@ export function LiveActivity({
 
   return (
     <div className={cn("flex flex-col", className)}>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="grid size-7 place-items-center rounded-md bg-ok/12 text-ok">
             <Radio className="size-4" />
@@ -57,7 +58,7 @@ export function LiveActivity({
           <div>
             <div className="text-sm font-semibold leading-none">Acontecendo agora</div>
             <div className="mt-0.5 text-[11px] text-muted-foreground/60">
-              o que o cockpit está tocando em tempo real
+              atividade interna do cockpit em tempo real
             </div>
           </div>
         </div>
@@ -71,6 +72,19 @@ export function LiveActivity({
           {live ? "ao vivo" : "conectando…"}
         </span>
       </div>
+
+      {/* o que é isto? — desfaz a confusão "cadê o SketchUp" */}
+      <Link
+        to="/flow#arquitetura"
+        className="mb-3 flex items-start gap-2 rounded-lg border border-border border-l-[3px] border-l-blue/50 bg-background/50 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground transition-colors hover:border-l-blue hover:text-foreground"
+      >
+        <Info className="mt-0.5 size-3.5 shrink-0 text-blue" />
+        <span>
+          Não é a geração do SketchUp — é o <b className="text-foreground/80">próprio cockpit se mantendo vivo</b>:
+          a tela busca status/agentes/runs a cada poucos segundos e o BFF fala com o upstream e o Ollama.
+          Cada linha é uma chamada e <b className="text-foreground/80">quem a fez</b>. <span className="text-blue">o que é isto? →</span>
+        </span>
+      </Link>
 
       <div className="relative max-h-[360px] flex-1 overflow-y-auto rounded-lg border border-border bg-popover/60">
         {ordered.length === 0 ? (
