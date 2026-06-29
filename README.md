@@ -73,3 +73,25 @@ docs/                INSPECTION.md (histórico) · ARCHITECTURE.md
 | **Studio Flow** | documentação viva ponta a ponta: timeline interativa, mapa de arquitetura, árvore dos repos, recipes, runbook (gerada do código real, marcando implemented/mock/planned) |
 
 Endpoints e contrato em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e `frontend/src/api/types.ts`.
+
+## Temas
+
+O cockpit tem **10 temas premium** trocáveis pelo **header** — persistem em `localStorage`,
+com transição suave e respeitando `prefers-reduced-motion`. Tudo é **token-driven** (CSS vars
+HSL), então o tema propaga em sidebar, header, cards, badges, logs e docs sem hardcode.
+
+- Default: **🌑 Obsidian Agent** (AI cockpit dark premium). Demais: ◼️ Linear Slate, 🟨 Studio Gold,
+  🧬 Cyber Grid, 📐 Blueprint Architect, 🟢 Supabase Emerald, 🚀 Raycast Command, 🟣 Cursor Neon,
+  🧊 Frosted Glass, ☀️ Minimal Light (claro).
+- Compare todos na tela **Theme Lab** (`/theme-lab`) — todos os componentes num lugar só.
+
+### Como adicionar um tema
+
+1. Em `frontend/src/theme/themes.ts`, adicione um objeto `Theme` (tipo em `theme-types.ts`):
+   `id`, `name`, `emoji`, `description`, `isDark`, `background` (`none`/`grid`/`mesh`/`glass`/`glow`/`dots`),
+   `motion`, `preview` (4 cores hex), `colors` (HSL triplets — ver as chaves em `theme-types.ts`),
+   e `glow`/`shadow`/`radius`.
+2. Pronto — ele aparece no switcher do header e no Theme Lab automaticamente.
+
+Arquivos: `src/theme/` (`theme-types`, `themes`, `apply-theme`, `theme-provider`, `use-theme`) ·
+`src/components/theme/theme-switcher.tsx`.

@@ -21,7 +21,7 @@ function iconFor(path: string) {
 
 export function ProjectTree({ title, nodes, accent = "gold" }: { title: string; nodes: TreeNode[]; accent?: "gold" | "blue" }) {
   return (
-    <div className="rounded-lg border border-border bg-[#0a0b0e] p-3">
+    <div className="rounded-lg border border-border bg-popover p-3">
       <div className={cn("mb-2 px-1 font-mono text-xs font-semibold", accent === "gold" ? "text-primary" : "text-blue")}>
         {title}
       </div>

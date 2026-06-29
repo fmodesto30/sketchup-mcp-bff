@@ -16,14 +16,14 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-full flex-col border-r border-border bg-gradient-to-b from-[#0c0d10] to-background">
+    <aside className="flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center gap-3 border-b border-border px-4">
         <span className="grid size-8 place-items-center rounded-md bg-gradient-to-br from-primary to-primary/50 text-primary-foreground shadow-glow">
           <Boxes className="size-4" />
         </span>
         <div className="leading-tight">
           <div className="text-sm font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-white to-primary bg-clip-text text-transparent">INTERIOR</span> COCKPIT
+            <span className="bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">INTERIOR</span> COCKPIT
           </div>
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground/50">AI devtool</div>
         </div>

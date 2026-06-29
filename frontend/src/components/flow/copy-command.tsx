@@ -33,7 +33,7 @@ export function CopyCommand({
         onClick={copy}
         title="Copiar"
         className={cn(
-          "group flex w-full items-center gap-2.5 rounded-md border border-border bg-[#0a0b0e] px-3 py-2 text-left font-mono text-xs transition-colors hover:border-border/80",
+          "group flex w-full items-center gap-2.5 rounded-md border border-border bg-popover px-3 py-2 text-left font-mono text-xs transition-colors hover:border-border/80",
         )}
       >
         {variant === "command" ? (
