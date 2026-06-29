@@ -1,16 +1,18 @@
 # Interior Studio — AI Cockpit (React)
 
 Frontend do **AI Cockpit**: React + TypeScript + Vite + Tailwind + Radix (shadcn-style) +
-TanStack Query. Consome **só** o BFF (`/api/*`). Roda em paralelo à versão vanilla
-(`../web`), sem substituí-la.
+TanStack Query. Consome **só** o BFF (`/api/*`). É o **único** frontend do projeto — em
+produção, o build (`dist/`) é servido pelo próprio BFF na `:8782` (o app vanilla anterior
+foi aposentado).
 
 ## Arquitetura
 
 ```
-React (Vite :5173)  ──/api/*──▶  BFF (server.py + cockpit_api.py :8782)
-                                   ├── proxy /api/state, /img → upstream :8781 (dashboard legado)
-                                   ├── Ollama :11434 (models, chat)         ◀── modelos locais
-                                   └── runner (runs, SSE de logs)           ◀── agents/workflows
+prod:  browser ──▶ :8782 (BFF serve dist/ + /api/*)
+dev:   Vite :5173 ──/api/* (proxy)──▶ BFF :8782
+                                        ├── proxy /api/state, /img → upstream :8781
+                                        ├── Ollama :11434 (models, chat)
+                                        └── runner (runs, SSE de logs)
 ```
 
 **Regra inviolável:** o frontend **nunca** chama Ollama nem scripts direto — só `/api/*`.
