@@ -4,12 +4,13 @@ import {
   Bot, Activity, Inbox, Cpu, ArrowRight, Workflow as WorkflowIcon,
   CheckCircle2, Network, type LucideIcon,
 } from "lucide-react";
-import { useStatus, useAgents, useRuns, useDecisions, useWorkflows, useLiveActivity } from "@/api/hooks";
+import { useStatus, useAgents, useRuns, useDecisions, useWorkflows, useLiveActivity, useRunAgent } from "@/api/hooks";
 import type { FileActivityEvent } from "@/api/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Pipeline } from "@/components/pipeline";
 import { LiveActivity } from "@/components/live-activity";
+import { AgentStage } from "@/components/agent-stage";
 import { EmptyState } from "@/components/states";
 import { AnimatedSection, staggerContainer, staggerItem } from "@/components/flow/animated-section";
 import { cn, timeAgo } from "@/lib/utils";
@@ -37,6 +38,7 @@ export default function Overview() {
   const navigate = useNavigate();
   const status = useStatus();
   const agents = useAgents();
+  const runAgent = useRunAgent();
   const runs = useRuns();
   const decisions = useDecisions();
   const workflows = useWorkflows();
@@ -198,6 +200,15 @@ export default function Overview() {
           </Card>
         </AnimatedSection>
       </div>
+
+      {/* estúdio — time de agentes (bonequinhos) ao vivo, embaixo do "acontecendo agora" */}
+      <AnimatedSection delay={0.05}>
+        <AgentStage
+          agents={agents.data?.agents ?? []}
+          onRun={(id) => runAgent.mutate({ id })}
+          runningId={runAgent.isPending ? runAgent.variables?.id ?? null : null}
+        />
+      </AnimatedSection>
     </div>
   );
 }
