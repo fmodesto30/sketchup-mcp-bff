@@ -27,10 +27,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # ── localização dos repos ─────────────────────────────────────────────────────
-BFF_ROOT = Path(__file__).resolve().parent
+MODULE_DIR = Path(__file__).resolve().parent
+# Repo do BFF a ESCANEAR. Em dev = onde o módulo vive; em Docker pode ser um mount
+# read-only do workspace (BFF_SCAN_ROOT) separado de onde o server.py de fato roda.
+BFF_ROOT = Path(os.environ.get("BFF_SCAN_ROOT", MODULE_DIR)).resolve()
 # motor (sketchup-mcp): por padrão irmão do BFF; configurável e honesto quando ausente.
 ENGINE_ROOT = Path(os.environ.get("BFF_ENGINE_ROOT", BFF_ROOT.parent / "sketchup-mcp")).resolve()
-MARKS_FILE = BFF_ROOT / ".file_map_marks.json"   # overrides manuais (protected/legacy/stale)
+# marks ficam num local GRAVÁVEL (o scan root pode ser read-only no container).
+MARKS_FILE = Path(os.environ.get("BFF_MARKS_FILE", MODULE_DIR / ".file_map_marks.json"))
 
 REPO_BFF = "sketchup-mcp-bff"
 REPO_ENGINE = "sketchup-mcp"
@@ -414,6 +418,10 @@ def _node_view(n: dict) -> dict:
         badges.append("proxied")
     if n["path"].startswith("sketchup-mcp-bff/frontend/dist") or op == "serve":
         badges.append("served")
+    if n["path"].startswith("ollama:"):
+        badges.append("llm")
+    if n.get("activeRunIds"):
+        badges.append("agent")
 
     # health
     if cls in ("protected", "source_of_truth"):
