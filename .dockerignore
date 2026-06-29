@@ -10,5 +10,7 @@ venv
 .scratch
 *.log
 .env
+.env.*
+*.local
 .DS_Store
 Thumbs.db
