@@ -53,9 +53,7 @@ function renderShell() {
       </div>
       <nav class="nav">${navHtml}</nav>
       <div class="sidebar-foot">
-        <a class="nav-item" href="/explica" target="_blank" rel="noopener">
-          ${icon("external", { size: 17 })}<span>Explica · Mapa · Fluxo</span>
-        </a>
+        <div class="brand-sub" style="padding:8px 12px">Interior Studio · AI Cockpit</div>
       </div>
     </aside>
 
@@ -144,8 +142,6 @@ function cmdkItems() {
     run: () => ctx.navigate(v.id) }));
   return nav.concat([
     { label: "Atualizar dados", hint: "ação", icon: "refresh", run: () => store.refresh() },
-    { label: "Abrir Explica / Mapa / Fluxo", hint: "externo", icon: "external",
-      run: () => window.open("/explica", "_blank") },
   ]);
 }
 function openCmdk() {

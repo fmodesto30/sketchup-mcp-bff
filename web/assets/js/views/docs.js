@@ -18,8 +18,7 @@ function architecture() {
     <div class="section-title">Como rodar</div>
     <div class="code-block">＄ python sketchup-mcp/tools/studio_dashboard.py --port 8781   # upstream (dados)
 ＄ python server.py                                            # BFF → http://127.0.0.1:8782</div>`;
-  return card({ title: "Arquitetura", eyebrow: "como o cockpit funciona", icon: "workflow", accent: "info", body,
-    actions: `<a class="btn btn--sm btn--ghost" href="/explica" target="_blank" rel="noopener">Explica ${icon("external", { size: 13 })}</a>` });
+  return card({ title: "Arquitetura", eyebrow: "como o cockpit funciona", icon: "workflow", accent: "info", body });
 }
 
 function knowledge(s) {
@@ -51,21 +50,6 @@ function corpus(s) {
   return card({ title: "Corpus & juiz", icon: "layers", body });
 }
 
-function links() {
-  const L = [
-    { href: "/explica", t: "Explica — como o sistema funciona", ic: "book" },
-    { href: "/grafo", t: "Mapa de conhecimento (grafo)", ic: "git" },
-    { href: "/fluxo", t: "Fluxo do pipeline", ic: "workflow" },
-    { href: "/agents", t: "Agentes (single / multi)", ic: "agents" },
-  ];
-  const body = `<div class="row-list">${L.map((l) => `
-    <a class="row" href="${l.href}" target="_blank" rel="noopener" style="cursor:pointer">
-      <div class="row-aside">${icon(l.ic, { size: 16 })}</div>
-      <div class="row-main"><div class="row-title">${esc(l.t)}</div></div>
-      ${icon("external", { size: 15 })}</a>`).join("")}</div>`;
-  return card({ title: "Documentação viva", icon: "external", body });
-}
-
 export default {
   id: "docs", label: "Documentação", icon: "book",
   title: "Documentação & Knowledge", subtitle: "Arquitetura do cockpit, base de conhecimento e diagramas",
@@ -73,9 +57,8 @@ export default {
     if (!s) return `<div class="card"><div class="card-body">${skeleton(6)}</div></div>`;
     return `<div class="grid">
       <div class="col-8">${architecture()}</div>
-      <div class="col-4">${links()}</div>
-      <div class="col-8">${knowledge(s)}</div>
       <div class="col-4">${corpus(s)}</div>
+      <div class="col-12">${knowledge(s)}</div>
     </div>`;
   },
 };
