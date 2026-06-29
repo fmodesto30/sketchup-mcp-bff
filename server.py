@@ -1,19 +1,19 @@
-"""server.py — BFF fino do INTERIOR STUDIO dashboard (:8782).
+"""server.py — BFF do INTERIOR STUDIO AI Cockpit (:8782).
 
-Serve o frontend premium (estático, em `web/`) e faz PROXY de toda a API / imagens /
-páginas-vitrine para o `studio_dashboard.py` original rodando como UPSTREAM (default
-:8781). Assim a `:8782` continua funcionando com DADOS REAIS, sem tocar no repo de
-origem (`GFCDOTA/sketchup-mcp`).
+Serve o frontend React (build em `frontend/dist`) + os endpoints do cockpit (cockpit_api),
+e faz PROXY de /api/state, imagens e páginas-vitrine para o `studio_dashboard.py` rodando
+como UPSTREAM (default :8781). Um app só, uma porta.
 
-    browser → :8782 (este BFF: web/ estático)
-                 └── proxy /api/* /img/* /inbox-img/* + páginas-vitrine → :8781 (upstream)
+    browser → :8782 (este BFF: frontend/dist + /api/* do cockpit)
+                 └── proxy /api/state /img/* + páginas legadas → :8781 (upstream)
 
 Uso:
+    cd frontend && npm run build           # gera frontend/dist (uma vez)
     python server.py                       # serve :8782, proxy → http://127.0.0.1:8781
     BFF_PORT=8782 BFF_UPSTREAM=http://127.0.0.1:8781 python server.py
     BFF_MOCK=1 python server.py            # sem upstream: /api/state vem de mocks/
 
-stdlib only — sem dependências, sem build.
+stdlib only — o BFF não tem dependências (o build do React é separado, em frontend/).
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
-WEB = Path(os.environ.get("BFF_WEB", ROOT / "web"))
+WEB = Path(os.environ.get("BFF_WEB", ROOT / "frontend" / "dist"))  # build do React
 MOCKS = ROOT / "mocks"
 PORT = int(os.environ.get("BFF_PORT", "8782"))
 UPSTREAM = os.environ.get("BFF_UPSTREAM", "http://127.0.0.1:8781").rstrip("/")
@@ -154,7 +154,7 @@ class H(BaseHTTPRequestHandler):
 
 def main() -> int:
     if not (WEB / "index.html").is_file():
-        print(f"[bff] AVISO: {WEB/'index.html'} não encontrado — rode da raiz do repo.")
+        print(f"[bff] AVISO: {WEB/'index.html'} não existe — rode `npm run build` em frontend/ primeiro.")
     host = os.environ.get("BFF_HOST", "127.0.0.1")   # localhost por padrão (não expõe na LAN)
     srv = ThreadingHTTPServer((host, PORT), H)
     print(f"INTERIOR STUDIO BFF  ->  http://{host}:{PORT}/")
