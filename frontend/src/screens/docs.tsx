@@ -29,7 +29,7 @@ function Callout({
 
 function CodeBlock({ children }: { children: React.ReactNode }) {
   return (
-    <pre className="overflow-x-auto rounded-md border border-border bg-[#0a0b0e] p-3.5 font-mono text-xs leading-relaxed text-muted-foreground [&_.k]:text-primary">
+    <pre className="overflow-x-auto rounded-md border border-border bg-popover p-3.5 font-mono text-xs leading-relaxed text-muted-foreground [&_.k]:text-primary">
       {children}
     </pre>
   );
