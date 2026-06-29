@@ -14,6 +14,7 @@ import Artifacts from "@/screens/artifacts";
 // telas de documentação (pesadas, com animações) — carregadas sob demanda
 const Docs = lazy(() => import("@/screens/docs"));
 const Flow = lazy(() => import("@/screens/flow"));
+const ThemeLab = lazy(() => import("@/screens/theme-lab"));
 
 const lazyEl = (node: React.ReactNode) => (
   <Suspense fallback={<LoadingState label="Carregando…" />}>{node}</Suspense>
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/artifacts" element={<Artifacts />} />
         <Route path="/docs" element={lazyEl(<Docs />)} />
         <Route path="/flow" element={lazyEl(<Flow />)} />
+        <Route path="/theme-lab" element={lazyEl(<ThemeLab />)} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

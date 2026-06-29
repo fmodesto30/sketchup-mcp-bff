@@ -1,6 +1,6 @@
 // nav.ts — registro de navegação do cockpit.
 import {
-  LayoutGrid, Bot, Activity, Workflow, Cpu, Inbox, Images, BookOpen, Map, type LucideIcon,
+  LayoutGrid, Bot, Activity, Workflow, Cpu, Inbox, Images, BookOpen, Map, Palette, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -35,6 +35,7 @@ export const NAV: NavSection[] = [
       { to: "/artifacts", label: "Artefatos", icon: Images },
       { to: "/docs", label: "Documentação", icon: BookOpen },
       { to: "/flow", label: "Studio Flow", icon: Map },
+      { to: "/theme-lab", label: "Theme Lab", icon: Palette },
     ],
   },
 ];
