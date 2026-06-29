@@ -70,5 +70,6 @@ docs/                INSPECTION.md (histórico) · ARCHITECTURE.md
 | **Decisões** | gates (propostas, revisão visual) com responder |
 | **Artefatos** | renders, SKPs, relatórios (lightbox in-app) |
 | **Documentação** | arquitetura, pipeline, guia das telas, base de conhecimento — tudo in-app |
+| **Studio Flow** | documentação viva ponta a ponta: timeline interativa, mapa de arquitetura, árvore dos repos, recipes, runbook (gerada do código real, marcando implemented/mock/planned) |
 
 Endpoints e contrato em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e `frontend/src/api/types.ts`.

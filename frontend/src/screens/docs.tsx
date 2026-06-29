@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Book, Boxes, Workflow as WorkflowIcon, Bot, Cpu, Network, Terminal,
   Lightbulb, ShieldCheck, ArrowRight, AppWindow, Layers, type LucideIcon,
@@ -145,6 +146,14 @@ export default function Docs() {
 
         {/* conteúdo */}
         <div className="col-span-12 space-y-4 lg:col-span-9">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border border-l-[3px] border-l-primary bg-background/60 p-3.5 text-sm">
+            <span className="text-muted-foreground">
+              Quer o fluxo <b className="text-foreground">ponta a ponta</b>, interativo e animado? Veja o Studio Flow.
+            </span>
+            <Link to="/flow" className="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+              Abrir Studio Flow <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
           <Section id="visao" title="O que é o Interior Studio" icon={Book}>
             <p>
               O <b>Interior Studio</b> é o cockpit multi-agente do projeto <code>sketchup-mcp</code>. O domínio
