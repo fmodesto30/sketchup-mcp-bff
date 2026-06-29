@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Images, FileText, FileJson, Box, Image as ImageIcon } from "lucide-react";
 import { useArtifacts } from "@/api/hooks";
 import type { Artifact, ArtifactType } from "@/api/types";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState, ErrorState } from "@/components/states";
 import { SkeletonText } from "@/components/ui/skeleton";
+import { staggerContainer, staggerItem } from "@/components/flow/animated-section";
 
 const ICON: Record<ArtifactType, typeof FileText> = {
   render: ImageIcon, image: ImageIcon, report: FileText, json: FileJson, skp: Box,
@@ -29,9 +31,13 @@ export default function Artifacts() {
       ) : items.length === 0 ? (
         <Card><EmptyState icon={Images} title="Sem artefatos" /></Card>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {items.map((a) => <ArtifactCard key={a.id} a={a} onZoom={setZoom} />)}
-        </div>
+        <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {items.map((a) => (
+            <motion.div key={a.id} variants={staggerItem} whileHover={{ y: -3 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
+              <ArtifactCard a={a} onZoom={setZoom} />
+            </motion.div>
+          ))}
+        </motion.div>
       )}
 
       {/* lightbox in-app — abre o render aqui dentro, não em outra aba */}
