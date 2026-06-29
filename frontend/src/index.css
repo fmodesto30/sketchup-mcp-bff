@@ -146,32 +146,3 @@ body,
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-
-/* ── react-grid-layout — dashboard customizável ────────────────────────────── */
-.react-grid-item.react-grid-placeholder {
-  background: hsl(var(--primary) / 0.16);
-  border: 1px dashed hsl(var(--primary) / 0.55);
-  border-radius: var(--radius);
-  opacity: 1;
-}
-.dashboard-grid.is-editing > .react-grid-item {
-  outline: 1px dashed hsl(var(--border));
-  outline-offset: 2px;
-  border-radius: var(--radius);
-}
-.react-grid-item.react-draggable-dragging,
-.react-grid-item.resizing {
-  z-index: 30;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
-}
-.react-resizable-handle {
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.dashboard-grid.is-editing .react-grid-item:hover .react-resizable-handle {
-  opacity: 0.85;
-}
-.react-resizable-handle::after {
-  border-right-color: hsl(var(--muted-foreground) / 0.6) !important;
-  border-bottom-color: hsl(var(--muted-foreground) / 0.6) !important;
-}
