@@ -1,7 +1,7 @@
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Boxes, Network, Cpu, Terminal, Bot, AppWindow, Hand, Radio,
-  ArrowRightLeft, FileDown, Eye, Play, AlertTriangle, type LucideIcon,
+  ArrowRightLeft, FileDown, Eye, Play, AlertTriangle, HelpCircle, type LucideIcon,
 } from "lucide-react";
 import type { FileActivityEvent, FileSource, FileOp } from "@/api/types";
 import { cn, timeAgo } from "@/lib/utils";
@@ -36,10 +36,13 @@ export function LiveActivity({
   events,
   live,
   className,
+  onSelect,
 }: {
   events: FileActivityEvent[];
   live: boolean;
   className?: string;
+  /** clique numa linha — ex.: levar pra doc do que é aquele evento. */
+  onSelect?: (ev: FileActivityEvent) => void;
 }) {
   const reduce = useReducedMotion();
   const ordered = [...events].reverse(); // mais novo no topo
@@ -88,25 +91,37 @@ export function LiveActivity({
                     initial={reduce ? false : { opacity: 0, y: -8, backgroundColor: "rgba(201,168,106,0.10)" }}
                     animate={{ opacity: 1, y: 0, backgroundColor: "rgba(0,0,0,0)" }}
                     transition={{ duration: 0.45, ease: "easeOut" }}
-                    className={cn("flex items-center gap-3 px-3 py-2", isErr && "bg-danger/[0.05]")}
                   >
-                    <span className={cn("grid size-7 shrink-0 place-items-center rounded-md border border-border bg-card", s.tone)}>
-                      <s.icon className="size-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        {Verb && <Verb className={cn("size-3 shrink-0", isErr ? "text-danger" : "text-muted-foreground/50")} />}
-                        <span className={cn("truncate text-[13px]", isErr ? "text-danger" : "text-foreground/90")}>
-                          {ev.label ?? `${ev.op} ${ev.path}`}
-                        </span>
+                    <button
+                      type="button"
+                      onClick={onSelect ? () => onSelect(ev) : undefined}
+                      disabled={!onSelect}
+                      title={onSelect ? "o que é isto? abrir na documentação" : undefined}
+                      className={cn(
+                        "group/row flex w-full items-center gap-3 px-3 py-2 text-left",
+                        isErr && "bg-danger/[0.05]",
+                        onSelect && "transition-colors hover:bg-white/[0.04]",
+                      )}
+                    >
+                      <span className={cn("grid size-7 shrink-0 place-items-center rounded-md border border-border bg-card", s.tone)}>
+                        <s.icon className="size-3.5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          {Verb && <Verb className={cn("size-3 shrink-0", isErr ? "text-danger" : "text-muted-foreground/50")} />}
+                          <span className={cn("truncate text-[13px]", isErr ? "text-danger" : "text-foreground/90")}>
+                            {ev.label ?? `${ev.op} ${ev.path}`}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 truncate font-mono text-[10.5px] text-muted-foreground/45">
+                          {ev.endpoint ?? ev.path}
+                          {ev.runId && <span className="text-warn/70"> · {ev.runId}</span>}
+                        </div>
                       </div>
-                      <div className="mt-0.5 truncate font-mono text-[10.5px] text-muted-foreground/45">
-                        {ev.endpoint ?? ev.path}
-                        {ev.runId && <span className="text-warn/70"> · {ev.runId}</span>}
-                      </div>
-                    </div>
-                    <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground/40">{timeAgo(ev.ts)}</span>
-                    <span className={cn("size-1.5 shrink-0 rounded-full", dot(ev))} />
+                      {onSelect && <HelpCircle className="size-3.5 shrink-0 text-muted-foreground/0 transition-colors group-hover/row:text-primary/70" />}
+                      <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground/40">{timeAgo(ev.ts)}</span>
+                      <span className={cn("size-1.5 shrink-0 rounded-full", dot(ev))} />
+                    </button>
                   </motion.li>
                 );
               })}

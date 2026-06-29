@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Workflow as WorkflowIcon, Network, FolderTree, Bot, Plug, Package,
@@ -53,6 +53,22 @@ function SectionTitle({ id, icon: Icon, title, sub }: { id?: string; icon: typeo
 export default function Flow() {
   const [cat, setCat] = useState<FlowCategory | "all">("all");
   const [selId, setSelId] = useState(flowSteps[0]?.id ?? "");
+  const { hash } = useLocation();
+
+  // chegou via deep-link (ex.: clique num log do "Acontecendo agora" → /flow#api) → rola até a seção
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.replace("#", "");
+    const t = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        el.classList.add("ring-2", "ring-primary/40", "rounded-lg");
+        setTimeout(() => el.classList.remove("ring-2", "ring-primary/40", "rounded-lg"), 1600);
+      }
+    }, 120);
+    return () => clearTimeout(t);
+  }, [hash]);
 
   const visible = cat === "all" ? flowSteps : flowSteps.filter((s) => stepCategory[s.id] === cat);
   useEffect(() => {
