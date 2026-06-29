@@ -3,12 +3,12 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Workflow as WorkflowIcon, Network, FolderTree, Bot, Plug, Package,
-  Sparkles, Terminal, Cpu, Wrench, AlertTriangle, ArrowRight,
+  Sparkles, Terminal, Cpu, Wrench, AlertTriangle, ArrowRight, Wand2,
 } from "lucide-react";
 import {
   flowSteps, architectureLayers, bffTree, engineTree, recipes, agentDocs,
   endpointDocs, artifactDocs, responsibilityCards, setupCommands, troubleshootingItems,
-  stepCategory, CATEGORY_LABEL, type FlowCategory,
+  skillDocs, specDocs, stepCategory, CATEGORY_LABEL, type FlowCategory,
 } from "@/data/flow";
 import { cn } from "@/lib/utils";
 import { FlowHero } from "@/components/flow/flow-hero";
@@ -22,12 +22,14 @@ import { ApiEndpointCard } from "@/components/flow/api-endpoint-card";
 import { ArtifactLifecycle } from "@/components/flow/artifact-lifecycle";
 import { StatusBadge } from "@/components/flow/status-badge";
 import { CopyCommand } from "@/components/flow/copy-command";
+import { SkillsGrid, SpecsList } from "@/components/flow/skills-grid";
 import { AnimatedSection, staggerContainer, staggerItem } from "@/components/flow/animated-section";
 
 const SECTIONS = [
   { id: "fluxo", label: "Fluxo", icon: WorkflowIcon },
   { id: "arquitetura", label: "Arquitetura", icon: Network },
   { id: "repos", label: "Repositórios", icon: FolderTree },
+  { id: "skills", label: "Skills & Specs", icon: Wand2 },
   { id: "recipes", label: "Recipes", icon: Sparkles },
   { id: "agentes", label: "Agentes", icon: Bot },
   { id: "api", label: "API", icon: Plug },
@@ -127,6 +129,18 @@ export default function Flow() {
         <div className="grid gap-4 lg:grid-cols-2">
           <ProjectTree title="sketchup-mcp-bff/  (cockpit + BFF)" nodes={bffTree} accent="gold" />
           <ProjectTree title="sketchup-mcp/  (motor — não modificado)" nodes={engineTree} accent="blue" />
+        </div>
+      </AnimatedSection>
+
+      {/* SKILLS & SPECS */}
+      <AnimatedSection>
+        <SectionTitle id="skills" icon={Wand2} title={`Skills do estúdio (${skillDocs.length})`}
+          sub="A esteira agêntica do motor (.claude/skills) por responsabilidade." />
+        <SkillsGrid skills={skillDocs} />
+        <div className="mt-8">
+          <SectionTitle icon={FolderTree} title={`Specs (${specDocs.length})`}
+            sub="O contrato vivo do motor (.claude/specs) — o que cada parte promete." />
+          <SpecsList specs={specDocs} />
         </div>
       </AnimatedSection>
 
