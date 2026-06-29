@@ -165,6 +165,32 @@ _AGENT_META = {
     "gpt-visual": ("Visão", "gpt-4o", ["vision", "judge"]),
 }
 
+# Time canônico do estúdio (líderes) — SEMPRE presente, mesmo sem o upstream legado.
+_CANONICAL_TEAM = [
+    ("interior-pm", "PM Orquestrador"),
+    ("interior-orchestrator", "Team Lead"),
+    ("interior-designer", "Arquiteto"),
+]
+
+
+def _canonical_agents() -> list[dict]:
+    """Fallback quando o upstream :8781 não dá agentes: mostra o time canônico com
+    status REAL — cada agente fica 'online' se o modelo dele estiver vivo no Ollama."""
+    tags = _ollama_get("/api/tags", timeout=2.0) or {}
+    full = {m.get("name", "") for m in tags.get("models", []) or []}
+    base = {n.split(":")[0] for n in full}
+    out = []
+    for aid, name in _CANONICAL_TEAM:
+        role, model, tools = _AGENT_META.get(aid, (name, None, ["chat"]))
+        ready = bool(model) and (model in full or model.split(":")[0] in base)
+        out.append({"id": aid, "name": name, "role": role, "umbrella": "Interior Studio",
+                    "status": "online" if ready else "idle", "online": ready,
+                    "model": model, "tools": tools,
+                    "message": (f"modelo {model} pronto no Ollama — pode rodar" if ready
+                                else f"modelo {model} ausente no Ollama" if model else None),
+                    "source": "canonical"})
+    return out
+
 
 def _derive_agents(state: dict) -> list[dict]:
     out = []
@@ -187,7 +213,8 @@ def _derive_agents(state: dict) -> list[dict]:
                         "umbrella": u.get("label", ""), "status": st, "model": model,
                         "online": bool(card.get("online")), "tools": tools,
                         "message": None if card.get("message") in (None, "—") else card.get("message")})
-    return out
+    # sem upstream (ou upstream sem agentes) → time canônico com status real do Ollama
+    return out or _canonical_agents()
 
 
 def _derive_workflows(state: dict) -> list[dict]:
