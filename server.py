@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import time
 import cockpit_api  # endpoints "AI Cockpit" (status/models/agents/runs/...) montados aqui
 import file_activity as fa  # Live System Map — eventos de serve/proxy/erro
@@ -203,9 +204,18 @@ def main() -> int:
     print(f"INTERIOR STUDIO BFF  ->  http://{host}:{PORT}/")
     print(f"  upstream (proxy /api/*) -> {UPSTREAM}" + ("   [MOCK ON]" if MOCK else ""))
     print(f"  servindo estatico de    -> {WEB}")
+
+    # `docker stop` / `compose down` enviam SIGTERM. Como PID 1 num container o Python
+    # não tem o default terminate-on-SIGTERM, então tratamos: SIGTERM vira o MESMO
+    # caminho de shutdown limpo do Ctrl-C (SIGINT) — sem esperar os 10s de grace.
+    def _term(*_):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, _term)
+
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
+        print("[bff] shutdown")
         srv.shutdown()
     return 0
 

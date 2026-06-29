@@ -17,6 +17,45 @@ browser ──▶ :8782  (BFF: serve frontend/dist + /api/* do cockpit)
 
 ## Como rodar
 
+### Docker (recomendado — um comando, assim como o `sketchup-mcp`)
+
+Pré-requisito: **Docker** (Desktop). Igual o motor dockeriza só a sua dashboard, aqui o
+compose dockeriza só o **bff** — que builda o React em imagem e reinicia sozinho.
+
+```bash
+docker compose up -d --build      # builda o React + sobe o bff(:8782)
+#  -> http://localhost:8782/
+docker compose logs -f bff        # acompanhar
+docker compose down               # parar
+```
+
+O **bff** (`:8782`) serve o frontend React + `/api/*`, fala com o **Ollama do host**
+(`:11434`) e proxia `/api/state` + imagens para o dashboard do motor em **`:8781`**. O repo
+do motor entra montado **read-only** em `/repos/sketchup-mcp` só para o **Live System Map**
+ler a árvore real — o bff **nunca escreve no motor**.
+
+Para dados **ao vivo**, tenha o `studio_dashboard.py` do motor rodando no host em `:8781`
+(o launcher `SUBIR-NOC` já faz isso). Sem nenhum upstream, rode em mock:
+
+```bash
+docker build -t interior-studio-bff .                          # builda a imagem primeiro
+docker run --rm -p 8782:8782 -e BFF_MOCK=1 interior-studio-bff # cockpit standalone (snapshot)
+```
+
+Quer **tudo** em container (inclui o dashboard do motor na `:8781`)? Use o profile `full`:
+
+```bash
+docker compose --profile full up -d --build
+```
+
+> ⚠️ O profile `full` **escreve** estado de runtime no repo do motor (`.ai_bridge/kanban.json`,
+> inbox, cycles…) — como a dashboard nativa faz. Para manter o motor intocado, não use o
+> profile (deixe o dashboard nativo no host, ou rode em `BFF_MOCK=1`).
+
+Topologia, profiles e troubleshooting em [`docs/DOCKER.md`](docs/DOCKER.md).
+
+### Manual (sem Docker)
+
 Pré-requisitos: **Python 3.10+** (BFF, stdlib) e **Node 18+** (build do React).
 
 ```bash
@@ -44,6 +83,9 @@ proxy de `/api` pro BFF). Ver [`frontend/README.md`](frontend/README.md).
 | `BFF_OLLAMA` | `http://127.0.0.1:11434` | Ollama (modelos locais) |
 | `BFF_WEB` | `./frontend/dist` | diretório do build React servido |
 | `BFF_MOCK` | *(off)* | `1` serve `mocks/state.sample.json` em `/api/state` sem upstream |
+| `BFF_ENGINE_ROOT` | `../sketchup-mcp` | repo do motor que o Live System Map escaneia (read-only) |
+| `BFF_SCAN_ROOT` | *(dir do módulo)* | repo do BFF a escanear (separa "o que roda" de "o que se mapeia") |
+| `BFF_MARKS_FILE` | `./.file_map_marks.json` | onde persistir marks manuais (protected/legacy/stale) do mapa |
 
 ## Estrutura
 
