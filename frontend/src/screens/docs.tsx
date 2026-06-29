@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Book, Boxes, Workflow as WorkflowIcon, Bot, Cpu, Network, Terminal,
-  Lightbulb, ShieldCheck, ArrowRight, BookOpen, Layers, type LucideIcon,
+  Lightbulb, ShieldCheck, ArrowRight, AppWindow, Layers, type LucideIcon,
 } from "lucide-react";
 import { useStudioState, useWorkflows } from "@/api/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,14 +51,14 @@ function ArchFlow() {
   );
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Node icon={BookOpen} title="Browser" sub=":5173 / :8782" />
+      <Node icon={AppWindow} title="Cockpit" sub="React · aberto em :8782" />
       <Arrow label="/api/*" />
-      <Node icon={Boxes} title="BFF" sub="server.py" accent />
-      <Arrow label="proxy / Ollama / runner" />
+      <Node icon={Boxes} title="BFF" sub="server.py + cockpit_api" accent />
+      <Arrow label="integra" />
       <div className="flex flex-col gap-2">
-        <Node icon={Network} title="Upstream" sub=":8781 (dados)" />
-        <Node icon={Cpu} title="Ollama" sub=":11434 (modelos)" />
-        <Node icon={Terminal} title="Runner" sub="runs + logs SSE" />
+        <Node icon={Cpu} title="Ollama" sub=":11434 · modelos" />
+        <Node icon={Network} title="Upstream" sub=":8781 · dados" />
+        <Node icon={Terminal} title="Runner" sub="runs · logs SSE" />
       </div>
     </div>
   );
@@ -152,22 +152,24 @@ export default function Docs() {
 
           <Section id="arquitetura" title="Arquitetura" icon={Network}>
             <p>
-              O cockpit é um frontend React + um <b>BFF fino</b> em Python (stdlib). O BFF serve a UI e é o
-              <b> ponto único de integração</b>: faz proxy do dashboard legado, fala com o Ollama e roda os runs.
+              O <b>Cockpit</b> é um app React servido pelo próprio <b>BFF</b> (Python, stdlib) na
+              <code>:8782</code> — mesma origem para a UI e para a API. O BFF é o <b>ponto único de
+              integração</b>: fala com o Ollama, executa os runs e faz proxy do <code>/api/state</code> legado.
+              Você só abre <code>http://localhost:8782</code>.
             </p>
             <ArchFlow />
-            <p>Para subir o ambiente completo:</p>
+            <p>Para subir o ambiente:</p>
             <CodeBlock>
-              <span className="k"># 1) upstream — a porta 8781 é obrigatória (o script usa 8782 por padrão)</span>{"\n"}
+              <span className="k"># 1) build do cockpit (uma vez) → frontend/dist</span>{"\n"}
+              cd frontend && npm run build && cd ..{"\n"}
+              <span className="k"># 2) upstream (dados) — a porta 8781 é obrigatória</span>{"\n"}
               python ../sketchup-mcp/tools/studio_dashboard.py --port 8781{"\n"}
-              <span className="k"># 2) BFF (API do cockpit + proxy)</span>{"\n"}
-              python server.py{"\n"}
-              <span className="k"># 3) frontend (dev com HMR)</span>{"\n"}
-              npm run dev   <span className="k"># http://localhost:5173</span>
+              <span className="k"># 3) BFF: serve o cockpit + API → http://localhost:8782</span>{"\n"}
+              python server.py
             </CodeBlock>
             <Callout tone="info">
-              Sem backend, dá pra iterar só no visual com <code>VITE_MOCKS=1 npm run dev</code> — as telas
-              usam fixtures tipadas.
+              Desenvolvendo o front com HMR: <code>npm run dev</code> (porta <code>:5173</code>, faz proxy
+              de <code>/api</code> → :8782). Só visual, sem backend: <code>VITE_MOCKS=1 npm run dev</code>.
             </Callout>
           </Section>
 
