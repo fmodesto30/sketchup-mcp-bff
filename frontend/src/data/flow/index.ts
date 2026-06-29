@@ -7,4 +7,5 @@ export { artifactDocs } from "./artifacts";
 export { architectureLayers } from "./layers";
 export { endpointDocs } from "./endpoints";
 export { bffTree, engineTree } from "./trees";
+export { skillDocs, specDocs } from "./skills";
 export { responsibilityCards, setupCommands, troubleshootingItems, stepCategory, CATEGORY_LABEL } from "./static";

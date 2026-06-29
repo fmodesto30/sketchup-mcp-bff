@@ -83,5 +83,19 @@ export interface TroubleshootingItem {
   fix: string;
 }
 
+export type SkillTrack = "pipeline" | "gates" | "interiores" | "decisao" | "ops";
+
+export interface SkillDoc {
+  name: string;
+  summary: string;
+  track: SkillTrack;
+}
+
+export interface SpecDoc {
+  file: string;
+  title: string;
+  summary: string;
+}
+
 /** filtros da tela (categorias de etapa) */
 export type FlowCategory = "pipeline" | "gates" | "agents" | "artifacts" | "api";
