@@ -8,6 +8,7 @@ import Workflows from "@/screens/workflows";
 import Models from "@/screens/models";
 import Decisions from "@/screens/decisions";
 import Artifacts from "@/screens/artifacts";
+import Docs from "@/screens/docs";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/models" element={<Models />} />
         <Route path="/decisions" element={<Decisions />} />
         <Route path="/artifacts" element={<Artifacts />} />
+        <Route path="/docs" element={<Docs />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
