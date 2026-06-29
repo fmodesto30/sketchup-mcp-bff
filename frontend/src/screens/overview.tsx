@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Bot, Activity, Inbox, Cpu, ArrowRight, Workflow as WorkflowIcon,
   CheckCircle2, Network, type LucideIcon,
 } from "lucide-react";
 import { useStatus, useAgents, useRuns, useDecisions, useWorkflows, useLiveActivity } from "@/api/hooks";
+import type { FileActivityEvent } from "@/api/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Pipeline } from "@/components/pipeline";
@@ -22,7 +23,18 @@ const ICON_TONE: Record<Tone, string> = {
   danger: "bg-danger/12 text-danger", neutral: "bg-secondary text-muted-foreground",
 };
 
+/** Mapeia um evento de atividade para a seção da doc "Como Funciona" que o explica. */
+function docAnchor(ev: FileActivityEvent): string {
+  if (ev.path.includes("artifacts")) return "artifacts";
+  if (ev.source === "ollama") return "agentes";
+  if (ev.source === "upstream") return "arquitetura";
+  if (ev.source === "runner" || ev.runId) return "agentes";
+  if (ev.endpoint) return "api";
+  return "fluxo";
+}
+
 export default function Overview() {
+  const navigate = useNavigate();
   const status = useStatus();
   const agents = useAgents();
   const runs = useRuns();
@@ -91,7 +103,12 @@ export default function Overview() {
         {/* acontecendo agora — centro */}
         <AnimatedSection className="col-span-12 lg:col-span-7">
           <Card className="h-full p-4">
-            <LiveActivity events={activity.events} live={activity.live} className="h-full" />
+            <LiveActivity
+              events={activity.events}
+              live={activity.live}
+              className="h-full"
+              onSelect={(ev) => navigate(`/flow#${docAnchor(ev)}`)}
+            />
           </Card>
         </AnimatedSection>
 
