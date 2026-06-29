@@ -34,6 +34,8 @@ from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+import file_activity as fa  # Live System Map — eventos de atividade + scanner dos repos
+
 UPSTREAM = os.environ.get("BFF_UPSTREAM", "http://127.0.0.1:8781").rstrip("/")
 OLLAMA = os.environ.get("BFF_OLLAMA", "http://127.0.0.1:11434").rstrip("/")
 MAX_BODY = 1 << 20  # 1 MiB — teto de corpo de POST (anti-DoS)
@@ -42,6 +44,19 @@ _LOCK = threading.Lock()
 RUNS: dict[str, dict] = {}
 _SEEDED = False
 _run_seq = 0
+
+# ── throttle de instrumentação (não floodar o timeline com polling de fundo) ──
+_emit_at: dict[str, float] = {}
+
+
+def _gate(key: str, interval: float) -> bool:
+    """True se já passou `interval`s desde o último emit dessa chave (inclua o
+    estado na chave p/ transições sempre dispararem)."""
+    now = time.time()
+    if now - _emit_at.get(key, 0.0) >= interval:
+        _emit_at[key] = now
+        return True
+    return False
 
 
 def _now() -> str:
@@ -66,8 +81,14 @@ def _upstream_state() -> dict:
     try:
         with urlopen(UPSTREAM + "/api/state", timeout=8) as r:
             v = json.loads(r.read())
+        if _gate("up:ok", 8.0):
+            fa.emit("upstream:/api/state", "proxy", "upstream", repo="external",
+                    endpoint="/api/state", label="read /api/state (upstream :8781)")
     except (URLError, HTTPError, OSError, json.JSONDecodeError):
         v = {}
+        if _gate("up:err", 6.0):
+            fa.emit("upstream:/api/state", "error", "upstream", repo="external",
+                    status="error", endpoint="/api/state", label="upstream /api/state offline")
     _state_cache.update(t=time.time(), v=v)
     return v
 
@@ -76,8 +97,15 @@ def _upstream_state() -> dict:
 def _ollama_get(path: str, timeout: float = 4.0):
     try:
         with urlopen(OLLAMA + path, timeout=timeout) as r:
-            return json.loads(r.read())
+            data = json.loads(r.read())
+        if _gate("oll:ok", 8.0):
+            fa.emit(f"ollama:{path}", "proxy", "ollama", repo="external",
+                    endpoint=path, label=f"Ollama {path} (online)")
+        return data
     except (URLError, HTTPError, OSError, json.JSONDecodeError):
+        if _gate("oll:err", 6.0):
+            fa.emit(f"ollama:{path}", "error", "ollama", repo="external", status="error",
+                    endpoint=path, label=f"Ollama {path} offline")
         return None
 
 
@@ -107,12 +135,18 @@ def _ollama_chat(body: dict) -> tuple[int, dict]:
     req = Request(OLLAMA + "/api/chat", data=payload,
                   headers={"Content-Type": "application/json"}, method="POST")
     t0 = time.time()
+    fa.emit("ollama:/api/chat", "execute", "ollama", repo="external", endpoint="/api/chat",
+            label=f"chat → {model}")  # ação do usuário: sempre registra
     try:
         with urlopen(req, timeout=120) as r:
             data = json.loads(r.read())
     except HTTPError as e:
+        fa.emit("ollama:/api/chat", "error", "ollama", repo="external", status="error",
+                endpoint="/api/chat", label=f"chat {model} HTTP {e.code}")
         return e.code, {"ok": False, "error": f"ollama HTTP {e.code}"}
     except (URLError, OSError) as e:
+        fa.emit("ollama:/api/chat", "error", "ollama", repo="external", status="error",
+                endpoint="/api/chat", label=f"chat {model} indisponível")
         return 503, {"ok": False, "error": "ollama_unreachable", "detail": str(e),
                      "hint": f"Suba o Ollama em {OLLAMA}."}
     msg = data.get("message") or {"role": "assistant", "content": ""}
@@ -134,6 +168,9 @@ _AGENT_META = {
 
 def _derive_agents(state: dict) -> list[dict]:
     out = []
+    if _gate("derive:agents", 4.0):
+        fa.emit("sketchup-mcp-bff/cockpit_api.py", "execute", "bff", endpoint="/api/agents",
+                label="derive agents (de /api/state)")
     for u in (state.get("agents", {}) or {}).get("umbrellas", []) or []:
         for card in [u.get("lead")] + (u.get("subs") or []):
             if not card:
@@ -154,6 +191,9 @@ def _derive_agents(state: dict) -> list[dict]:
 
 
 def _derive_workflows(state: dict) -> list[dict]:
+    if _gate("derive:workflows", 4.0):
+        fa.emit("sketchup-mcp-bff/cockpit_api.py", "execute", "bff", endpoint="/api/workflows",
+                label="derive workflows (de /api/state)")
     ov = (state.get("overview", {}) or {}).get("active_focuses") or [{}]
     pipe = (ov[0] or {}).get("pipeline") or []
     fac = state.get("factory", {}) or {}
@@ -193,6 +233,9 @@ def _derive_workflows(state: dict) -> list[dict]:
 
 def _derive_decisions(state: dict) -> list[dict]:
     out = []
+    if _gate("derive:decisions", 4.0):
+        fa.emit("sketchup-mcp-bff/cockpit_api.py", "execute", "bff", endpoint="/api/decisions",
+                label="derive decisions (propostas + visual review)")
     for p in (state.get("proposals", {}) or {}).get("pending", []) or []:
         items = ", ".join(i.get("asset", "") for i in (p.get("items") or [])[:4])
         out.append({"id": p.get("id"), "type": "program_proposal",
@@ -212,8 +255,15 @@ def _derive_decisions(state: dict) -> list[dict]:
 
 def _derive_artifacts(state: dict) -> list[dict]:
     out = []
+    if _gate("derive:artifacts", 4.0):
+        fa.emit("sketchup-mcp-bff/cockpit_api.py", "execute", "bff", endpoint="/api/artifacts",
+                label="derive artifacts (renders + refpack)")
     for r in (state.get("renders") or [])[:40]:
         name = r.get("name", "")
+        # cada render é um artifact do motor — registra no mapa para aparecer "tocado"
+        if name and _gate("art:" + name, 30.0):
+            fa.emit(f"sketchup-mcp/artifacts/{name}", "read", "bff", repo="sketchup-mcp",
+                    label="artifact render listado")
         out.append({"id": re.sub(r"\W+", "-", name.lower()).strip("-") or name,
                     "type": "render", "name": r.get("sub") or name, "path": name,
                     "url": "/img/" + name, "sizeKb": r.get("kb"),
@@ -286,6 +336,9 @@ def _start_run(kind: str, **meta) -> str:
            ("agentId", "agentName", "workflowId", "model") if k in meta}}
     with _LOCK:
         RUNS[rid] = run
+    fa.emit("sketchup-mcp-bff/cockpit_api.py", "execute", "runner", run_id=rid,
+            workflow_id=meta.get("workflowId"), agent_id=meta.get("agentId"),
+            label=f"run {kind} criado (runner STUB)", confidence="low", stub=True)
     threading.Thread(target=_runner, args=(rid,), daemon=True).start()
     return rid
 
@@ -324,6 +377,9 @@ def _runner(rid: str):
     run["durationMs"] = int((time.time() - t0) * 1000)
     _log(run, "error" if failed else "success",
          f"run {run['status']} em {run['durationMs']}ms")
+    fa.emit("sketchup-mcp-bff/cockpit_api.py", "error" if failed else "execute", "runner",
+            run_id=rid, status="error" if failed else "ok", confidence="low", stub=True,
+            label=f"run {run['status']} (STUB) em {run['durationMs']}ms")
 
 
 # ── dispatch ─────────────────────────────────────────────────────────────────
@@ -332,6 +388,15 @@ def dispatch(h) -> bool:
     from urllib.parse import urlparse, parse_qs
     method, path = h.command, urlparse(h.path).path
     query = parse_qs(urlparse(h.path).query)
+
+    # Live System Map: rotas /api/file-map/* (inclui o SSE) — antes de tudo.
+    if fa.dispatch(h):
+        return True
+    # instrumenta toda chamada /api/* nativa no timeline (POST sempre; GET throttled)
+    if path.startswith("/api/") and not path.startswith("/api/file-map"):
+        if method != "GET" or _gate(f"req:{method}:{path}", 4.0):
+            fa.emit("sketchup-mcp-bff/cockpit_api.py", "execute", "bff",
+                    endpoint=path, label=f"{method} {path}", status="started")
 
     if method == "GET" and path == "/api/status":
         return _ok(h, _status())
@@ -470,3 +535,7 @@ def _runs_logs(h, rid: str, query: dict) -> bool:
     except (BrokenPipeError, ConnectionResetError, OSError):
         pass
     return True
+
+
+# Liga o painel "o que está errado?" do Live System Map à saúde upstream/ollama.
+fa.set_status_probe(_status)
