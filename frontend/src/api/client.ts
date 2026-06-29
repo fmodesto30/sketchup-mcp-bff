@@ -6,6 +6,7 @@ import type {
   AgentsResponse, RunsResponse, RunDetailResponse, RunLogsResponse,
   ArtifactsResponse, DecisionsResponse, DecisionRespondRequest, DecisionRespondResponse,
   WorkflowsResponse, RunTriggerResponse, LogLine, StudioState,
+  FileEventsResponse, FileActivityEvent,
 } from "./types";
 import { mocks } from "./mocks";
 
@@ -102,6 +103,10 @@ export const api = {
     if (USE_MOCKS) return delay().then(() => ({}) as StudioState);
     return http("/api/state");
   },
+  async fileEvents(since = 0): Promise<FileEventsResponse> {
+    if (USE_MOCKS) return delay(120).then(() => mocks.fileEvents);
+    return http(`/api/file-map/events?since=${since}`);
+  },
 };
 
 /* ── SSE: stream de logs ao vivo de um run ─────────────────────────────────-*/
@@ -141,6 +146,37 @@ export function streamRunLogs(
     if (es.readyState === EventSource.CLOSED) {
       es.close();
       onEnd?.();
+    }
+  };
+  return () => es.close();
+}
+
+/* ── SSE: feed "acontecendo agora" — eventos de atividade do BFF ─────────────-*/
+export function streamFileEvents(
+  onEvent: (e: FileActivityEvent) => void,
+  onError?: () => void,
+): () => void {
+  if (USE_MOCKS) {
+    let i = 0;
+    const seed = mocks.fileEvents.events;
+    const t = setInterval(() => {
+      onEvent({ ...seed[i % seed.length], id: `mock-${i}`, seq: 1000 + i, ts: new Date().toISOString() });
+      i++;
+    }, 1800);
+    return () => clearInterval(t);
+  }
+  const es = new EventSource(`/api/file-map/events/stream`);
+  es.onmessage = (ev) => {
+    try {
+      onEvent(JSON.parse(ev.data) as FileActivityEvent);
+    } catch {
+      /* ignora linha malformada / heartbeat */
+    }
+  };
+  es.onerror = () => {
+    if (es.readyState === EventSource.CLOSED) {
+      es.close();
+      onError?.();
     }
   };
   return () => es.close();

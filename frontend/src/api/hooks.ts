@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import {
   useMutation, useQuery, useQueryClient, type UseQueryOptions,
 } from "@tanstack/react-query";
-import { api, streamRunLogs } from "./client";
-import type { ChatRequest, LogLine } from "./types";
+import { api, streamRunLogs, streamFileEvents } from "./client";
+import type { ChatRequest, LogLine, FileActivityEvent } from "./types";
 
 export const qk = {
   status: ["status"] as const,
@@ -79,6 +79,34 @@ export function useRespondDecision() {
       api.respondDecision(id, { choice }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.decisions }),
   });
+}
+
+/* ── SSE: feed "acontecendo agora" (atividade do BFF ao vivo) ───────────────-*/
+export function useLiveActivity(max = 24) {
+  const [events, setEvents] = useState<FileActivityEvent[]>([]);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    // semeia com o backlog recente, depois faz tail via SSE
+    api.fileEvents(0)
+      .then((r) => mounted && setEvents(r.events.slice(-max)))
+      .catch(() => {});
+    const stop = streamFileEvents(
+      (e) => {
+        if (!mounted) return;
+        setLive(true);
+        setEvents((prev) => (prev.some((p) => p.id === e.id) ? prev : [...prev, e].slice(-max)));
+      },
+      () => mounted && setLive(false),
+    );
+    return () => {
+      mounted = false;
+      stop();
+    };
+  }, [max]);
+
+  return { events, live };
 }
 
 /* ── SSE: logs ao vivo de um run ───────────────────────────────────────────-*/

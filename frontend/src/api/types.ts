@@ -486,3 +486,37 @@ export interface StudioState {
 
 /** Alias de compat: resposta de disparo de run. */
 export type RunResponse = RunTriggerResponse;
+
+/* ───────────────────────────── Live activity (file-map) ───────────────────────────── */
+/* Feed "acontecendo agora": eventos de atividade emitidos pelo BFF (proxy/ollama/derive/
+   serve/runner). Espelha o FileActivityEvent do file_activity.py. */
+
+export type FileOp =
+  | "read" | "write" | "execute" | "serve" | "proxy" | "generate" | "modify" | "delete" | "error" | "classify";
+export type FileSource = "frontend" | "bff" | "upstream" | "runner" | "agent" | "ollama" | "watcher" | "manual";
+export type FileEventStatus = "started" | "ok" | "warn" | "error";
+
+/** Um evento de atividade ao vivo (item do SSE /api/file-map/events/stream). */
+export interface FileActivityEvent {
+  id: string;
+  seq: number;
+  ts: IsoString;
+  repo: "sketchup-mcp-bff" | "sketchup-mcp" | "external";
+  path: string;
+  op: FileOp;
+  source: FileSource;
+  status: FileEventStatus;
+  endpoint?: string;
+  runId?: string;
+  workflowId?: string;
+  agentId?: string;
+  label?: string;
+  confidence?: "high" | "medium" | "low";
+  details?: Record<string, unknown>;
+}
+
+/** GET /api/file-map/events — backlog recente + cursor. */
+export interface FileEventsResponse {
+  events: FileActivityEvent[];
+  cursor: number;
+}
