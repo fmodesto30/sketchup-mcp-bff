@@ -1,11 +1,9 @@
 import { NavLink } from "react-router-dom";
-import { Boxes, ExternalLink } from "lucide-react";
+import { Boxes } from "lucide-react";
 import { NAV } from "@/config/nav";
 import { useRuns, useDecisions } from "@/api/hooks";
 import { useUi } from "@/store/ui";
 import { cn } from "@/lib/utils";
-
-const BFF = import.meta.env.VITE_BFF_URL ?? "";
 
 export function Sidebar() {
   const { data: runs } = useRuns();
@@ -77,16 +75,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-border p-2">
-        <a
-          href={`${BFF}/explica`}
-          target="_blank"
-          rel="noopener"
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-        >
-          <ExternalLink className="size-[17px] text-muted-foreground/70" />
-          Explica · Mapa · Fluxo
-        </a>
+      <div className="border-t border-border p-3">
+        <div className="px-1 text-[10.5px] text-muted-foreground/40">
+          Interior Studio · AI Cockpit
+        </div>
       </div>
     </aside>
   );
