@@ -103,7 +103,9 @@ export function AgentStage({
           </div>
         </div>
         <p className="mb-2 text-[11px] text-muted-foreground/60">
-          Online quando o modelo do agente está vivo no Ollama. Eles conversam sozinhos: quem fala anda até o outro.
+          Online = o modelo do agente está vivo no Ollama. A conversa abaixo é uma{" "}
+          <b className="text-warn/90">demonstração do fluxo</b> (roteiro) — a conversa REAL entra quando o ciclo do
+          motor (upstream :8781) estiver rodando.
         </p>
 
         {/* palco — bonequinhos posicionados, andam quando falam */}
@@ -164,6 +166,11 @@ export function AgentStage({
                     <div className="text-center">
                       <div className="text-[11px] font-semibold leading-none">{a.name}</div>
                       <div className="mt-0.5 text-[9.5px] text-muted-foreground/60">{a.role}</div>
+                      {a.model && (
+                        <div className="mt-0.5 inline-block rounded bg-secondary px-1 py-px font-mono text-[8.5px] text-muted-foreground/70">
+                          {a.model.split(":")[0]}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -178,6 +185,7 @@ export function AgentStage({
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <MessagesSquare className="size-4 text-muted-foreground" /> Conversa do time
+            <span className="rounded-full border border-warn/30 bg-warn/10 px-1.5 py-px text-[9px] font-medium uppercase tracking-wide text-warn">demo</span>
           </div>
           {playing && canAuto && <span className="size-1.5 rounded-full bg-ok animate-pulse-dot" />}
         </div>
@@ -189,12 +197,18 @@ export function AgentStage({
           ) : (
             <AnimatePresence initial={false}>
               {chat.map((m) => {
-                const f = face(agents.find((a) => a.id === m.from)?.role ?? "");
+                const fromAgent = agents.find((a) => a.id === m.from);
+                const f = face(fromAgent?.role ?? "");
+                const model = fromAgent?.model?.split(":")[0];
                 return (
                   <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2">
                     <span className={cn("grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-b text-xs", f.tint)}>{f.emoji}</span>
                     <div className="min-w-0">
-                      <div className="text-[10px] text-muted-foreground/60">{m.fromName} <span className="text-muted-foreground/40">→ {m.toName}</span></div>
+                      <div className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground/60">
+                        <span className="font-medium text-muted-foreground/85">{m.fromName}</span>
+                        {model && <span className="rounded bg-secondary px-1 font-mono text-[9px] text-primary/80">{model}</span>}
+                        <span className="text-muted-foreground/40">→ {m.toName}</span>
+                      </div>
                       <div className="rounded-lg rounded-tl-sm border border-border bg-card px-2.5 py-1.5 text-xs text-foreground/90">{m.text}</div>
                     </div>
                   </motion.div>
