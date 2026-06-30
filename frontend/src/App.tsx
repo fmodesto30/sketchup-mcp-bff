@@ -7,6 +7,7 @@ import Operacao from "@/screens/operacao";
 import RunDetail from "@/screens/run-detail";
 import Decisions from "@/screens/decisions";
 import Artifacts from "@/screens/artifacts";
+import NocLedger from "@/screens/noc-ledger";
 
 // telas de documentação (pesadas, com animações) — carregadas sob demanda
 const Flow = lazy(() => import("@/screens/flow"));
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/operacao" element={<Operacao />} />
         <Route path="/runs/:id" element={<RunDetail />} />
         <Route path="/decisions" element={<Decisions />} />
+        <Route path="/noc" element={<NocLedger />} />
         <Route path="/artifacts" element={<Artifacts />} />
         <Route path="/flow" element={lazyEl(<Flow />)} />
         <Route path="/theme-lab" element={lazyEl(<ThemeLab />)} />

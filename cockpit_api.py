@@ -35,6 +35,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import file_activity as fa  # Live System Map — eventos de atividade + scanner dos repos
+import noc_mirror as noc  # NOC mirror — le os arquivos planos do atuador (vidro read-only)
 
 UPSTREAM = os.environ.get("BFF_UPSTREAM", "http://127.0.0.1:8781").rstrip("/")
 OLLAMA = os.environ.get("BFF_OLLAMA", "http://127.0.0.1:11434").rstrip("/")
@@ -440,6 +441,11 @@ def dispatch(h) -> bool:
         return _ok(h, {"artifacts": _derive_artifacts(_upstream_state())})
     if method == "GET" and path == "/api/decisions":
         return _ok(h, {"decisions": _derive_decisions(_upstream_state())})
+    # NOC (vidro read-only): runs/ledger REAIS do atuador + saude do lock — lidos de arquivo
+    if method == "GET" and path == "/api/noc/ledger":
+        return _ok(h, noc.ledger_view())
+    if method == "GET" and path == "/api/noc/status":
+        return _ok(h, noc.status_view())
     if method == "GET" and path == "/api/runs":
         _seed_runs()
         with _LOCK:   # snapshot consistente (RUNS é mutado por _runner/_start_run)

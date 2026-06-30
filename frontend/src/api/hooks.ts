@@ -17,6 +17,8 @@ export const qk = {
   decisions: ["decisions"] as const,
   workflows: ["workflows"] as const,
   state: ["state"] as const,
+  nocLedger: ["noc", "ledger"] as const,
+  nocStatus: ["noc", "status"] as const,
 };
 
 type QOpts<T> = Omit<UseQueryOptions<T, Error, T>, "queryKey" | "queryFn">;
@@ -47,6 +49,12 @@ export const useWorkflows = () => useQuery({ queryKey: qk.workflows, queryFn: ap
 
 export const useStudioState = () =>
   useQuery({ queryKey: qk.state, queryFn: api.state, refetchInterval: 5000 });
+
+export const useNocLedger = () =>
+  useQuery({ queryKey: qk.nocLedger, queryFn: api.nocLedger, refetchInterval: 4000 });
+
+export const useNocStatus = () =>
+  useQuery({ queryKey: qk.nocStatus, queryFn: api.nocStatus, refetchInterval: 6000 });
 
 /* ── mutations ─────────────────────────────────────────────────────────────*/
 export function useRunAgent() {

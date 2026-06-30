@@ -7,6 +7,7 @@ import type {
   ArtifactsResponse, DecisionsResponse, DecisionRespondRequest, DecisionRespondResponse,
   WorkflowsResponse, RunTriggerResponse, LogLine, StudioState,
   FileEventsResponse, FileActivityEvent,
+  NocLedgerResponse, NocStatusResponse,
 } from "./types";
 import { mocks } from "./mocks";
 
@@ -106,6 +107,21 @@ export const api = {
   async fileEvents(since = 0): Promise<FileEventsResponse> {
     if (USE_MOCKS) return delay(120).then(() => mocks.fileEvents);
     return http(`/api/file-map/events?since=${since}`);
+  },
+  async nocLedger(): Promise<NocLedgerResponse> {
+    if (USE_MOCKS) return delay().then(() => ({
+      live: true, visualReview: [],
+      tasks: [{ taskId: "T1", title: "exemplo (mock)", status: "COMMITTED", branch: "chore/noc-t1",
+        worktree: "", dryRun: false, rc: 0, verifyChecked: ["x.md"], verifyMissing: [], outTail: "mock" }],
+    }) as NocLedgerResponse);
+    return http("/api/noc/ledger");
+  },
+  async nocStatus(): Promise<NocStatusResponse> {
+    if (USE_MOCKS) return delay().then(() => ({
+      nocRoot: "(mock)", present: true, live: true, queueCount: 1, taskCount: 1,
+      lock: { state: "free", alive: false, label: "ocioso (mock)" },
+    }) as NocStatusResponse);
+    return http("/api/noc/status");
   },
 };
 

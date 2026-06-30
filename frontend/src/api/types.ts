@@ -520,3 +520,43 @@ export interface FileEventsResponse {
   events: FileActivityEvent[];
   cursor: number;
 }
+
+/* ── NOC mirror (vidro read-only do atuador autônomo) ───────────────────────*/
+export interface NocLockState {
+  state: "held" | "stale" | "free";
+  alive: boolean;
+  label: string;
+  owner?: string;
+  pid?: number;
+  ageS?: number;
+  staleForS?: number;
+}
+export interface NocTask {
+  taskId: string;
+  title: string;
+  status: string; // COMMITTED / VERIFY_FAILED / VISUAL_REVIEW_QUEUED / NOOP / DRY_RUN / ...
+  branch?: string | null;
+  worktree?: string | null;
+  dryRun: boolean;
+  rc?: number | null;
+  verifyChecked: string[];
+  verifyMissing: string[];
+  outTail: string;
+  ts?: number | null;
+}
+export interface NocLedgerResponse {
+  live: boolean;
+  reason?: string;
+  tasks: NocTask[];
+  visualReview: NocTask[];
+  rawLines?: number;
+  source?: string;
+}
+export interface NocStatusResponse {
+  nocRoot: string;
+  present: boolean;
+  lock: NocLockState;
+  queueCount: number;
+  taskCount: number;
+  live: boolean;
+}
