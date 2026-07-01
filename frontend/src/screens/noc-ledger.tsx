@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import {
   GitBranch, ServerCog, ShieldCheck, CircleDot, FileCheck2,
-  Activity, Boxes, Cpu, FolderGit2, MessageSquare,
+  Activity, Boxes, Cpu, FolderGit2, Radio, Heart,
 } from "lucide-react";
 import {
   useNocLedger, useNocStatus,
-  useBridgeHealth, useBridgeGate, useBridgeSessions, useBridgeGit, useBridgeSkp,
+  useBridgeHealth, useGateLive, useBridgeSessions, useBridgeGit, useBridgeSkp,
 } from "@/api/hooks";
 import type { NocTask, NocLockState } from "@/api/types";
 import { PageHeader } from "@/components/page-header";
@@ -117,7 +117,6 @@ function SistemaSection() {
   const health = useBridgeHealth();
   const git = useBridgeGit();
   const sessions = useBridgeSessions();
-  const gate = useBridgeGate();
   const skp = useBridgeSkp();
   const h = health.data;
 
@@ -141,6 +140,8 @@ function SistemaSection() {
           )}
         </CardContent>
       </Card>
+
+      <GateLiveCard />
 
       <div className="grid gap-3 md:grid-cols-2">
         <Card><CardContent className="pt-4">
@@ -176,24 +177,6 @@ function SistemaSection() {
         </CardContent></Card>
 
         <Card><CardContent className="pt-4">
-          <div className="mb-1 flex items-center gap-2 text-sm font-semibold">
-            <MessageSquare className="size-4 text-blue" /> Gate do oráculo — {gate.data?.consultCount ?? 0} consults
-          </div>
-          <p className="mb-2 text-[11px] text-muted-foreground/50">
-            metadado só (sem prompt = privacidade) · última: {gate.data?.lastActivityAgeS != null ? fmtAge(gate.data.lastActivityAgeS) : "—"}
-          </p>
-          <div className="space-y-1">
-            {(gate.data?.consults ?? []).slice(0, 5).map((c, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/70">
-                <Cpu className="size-3 shrink-0" /><code className="truncate">{c.model}</code>
-                <Badge variant="outline" className="shrink-0">{c.tier}</Badge>
-                <span className="ml-auto shrink-0">{c.durSec}s · {c.qChars}→{c.aChars}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent></Card>
-
-        <Card><CardContent className="pt-4">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <Boxes className="size-4 text-blue" /> .skp por planta
           </div>
@@ -209,6 +192,80 @@ function SistemaSection() {
         </CardContent></Card>
       </div>
     </div>
+  );
+}
+
+/** Gate AO VIVO — o mesmo padrão do "Acontecendo agora", mas lendo o audit.jsonl do :8765 por SSE.
+ *  Conta os ACESSOS ao gate em tempo real (consults + heartbeats do oráculo). */
+function GateLiveCard() {
+  const { events, count, consults, live, ratePerMin } = useGateLive(24);
+  const lastAgeS = events[0] ? Math.max(Date.now() / 1000 - events[0].ts, 0) : null;
+
+  return (
+    <Card className={cn("border", live ? "border-ok/30 bg-ok/[0.04]" : "border-border")}>
+      <CardContent className="pt-4">
+        <div className="mb-3 flex flex-wrap items-end gap-x-5 gap-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Radio className={cn("size-4", live ? "text-ok" : "text-muted-foreground/50")} />
+            Gate ao vivo
+            {live
+              ? <span className="inline-flex items-center gap-1 text-xs font-normal text-ok">
+                  <span className="size-1.5 rounded-full bg-ok animate-pulse-dot" /> streaming
+                </span>
+              : <span className="text-xs font-normal text-muted-foreground/50">conectando…</span>}
+          </div>
+
+          <div className="flex items-baseline gap-1.5">
+            <span className="tabular-nums text-3xl font-bold leading-none text-ok">{count}</span>
+            <span className="text-xs text-muted-foreground/70">acessos nesta sessão</span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="tabular-nums text-lg font-semibold leading-none text-blue">{ratePerMin.toFixed(1)}</span>
+            <span className="text-xs text-muted-foreground/70">acessos/min</span>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground/60">
+            <Badge variant="outline">{consults} consults no total</Badge>
+            {lastAgeS != null && <span>último: {fmtAge(lastAgeS)}</span>}
+          </div>
+        </div>
+
+        <p className="mb-2 text-[11px] text-muted-foreground/50">
+          tail do <code>audit.jsonl</code> · consult = metadado só (sem prompt = privacidade) · o :8765 nunca é tocado
+        </p>
+
+        {events.length === 0 ? (
+          <div className="py-4 text-center text-xs text-muted-foreground/40">
+            aguardando acessos ao gate… (heartbeats do oráculo aparecem aqui em tempo real)
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {events.map((e, i) => (
+              <div key={`${e.ts}-${i}`}
+                className="flex items-center gap-2 text-xs animate-in fade-in slide-in-from-top-1">
+                {e.kind === "consult" ? (
+                  <>
+                    <Cpu className="size-3 shrink-0 text-blue" />
+                    <code className="truncate text-muted-foreground/80">{e.model ?? "consult"}</code>
+                    {e.tier && <Badge variant="outline" className="shrink-0">{e.tier}</Badge>}
+                    <span className="ml-auto shrink-0 text-muted-foreground/60">
+                      {e.durSec != null && `${e.durSec}s · `}{e.qChars ?? 0}→{e.aChars ?? 0}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Heart className="size-3 shrink-0 text-ok/60" />
+                    <span className="text-muted-foreground/60">heartbeat</span>
+                    {e.session && <code className="truncate text-muted-foreground/40">{e.session}</code>}
+                    {e.cycle != null && <span className="ml-auto shrink-0 text-muted-foreground/40">ciclo {e.cycle}</span>}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

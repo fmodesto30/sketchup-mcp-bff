@@ -1,10 +1,10 @@
 // hooks.ts — camada de dados (TanStack Query) sobre o client tipado.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useMutation, useQuery, useQueryClient, type UseQueryOptions,
 } from "@tanstack/react-query";
-import { api, streamRunLogs, streamFileEvents } from "./client";
-import type { ChatRequest, LogLine, FileActivityEvent } from "./types";
+import { api, streamRunLogs, streamFileEvents, streamGateAccess } from "./client";
+import type { ChatRequest, LogLine, FileActivityEvent, GateAccessEvent } from "./types";
 
 export const qk = {
   status: ["status"] as const,
@@ -72,6 +72,42 @@ export const useBridgeGit = () =>
   useQuery({ queryKey: qk.bridgeGit, queryFn: api.bridgeGit, refetchInterval: 10000 });
 export const useBridgeSkp = () =>
   useQuery({ queryKey: qk.bridgeSkp, queryFn: api.bridgeSkp, refetchInterval: 15000 });
+
+/* ── SSE: ACESSOS ao gate AO VIVO (tail do audit.jsonl) — como o "Acontecendo agora", mas do gate ─*/
+export function useGateLive(max = 24) {
+  const [events, setEvents] = useState<GateAccessEvent[]>([]);
+  const [count, setCount] = useState(0);       // acessos observados nesta conexão (consult + heartbeat)
+  const [consults, setConsults] = useState(0); // consults (seed do ledger + os que chegam ao vivo)
+  const [live, setLive] = useState(false);
+  const startRef = useRef<number>(Date.now());
+  const [, tick] = useState(0);
+
+  useEffect(() => {
+    startRef.current = Date.now();
+    setEvents([]); setCount(0); setConsults(0);
+    const stop = streamGateAccess(
+      (e) => {
+        setLive(true);
+        setCount((c) => c + 1);
+        if (e.kind === "consult") setConsults((c) => c + 1);
+        setEvents((prev) => [e, ...prev].slice(0, max));
+      },
+      (seed) => { setLive(true); setConsults(seed.consultCount); },  // seed chega na conexão → já é "ao vivo"
+      () => setLive(false),
+    );
+    return stop;
+  }, [max]);
+
+  // re-render a cada 5s pra a taxa (acessos/min) andar mesmo sem evento novo
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const elapsedMin = Math.max((Date.now() - startRef.current) / 60000, 0.05);
+  const ratePerMin = count / elapsedMin;
+  return { events, count, consults, live, ratePerMin };
+}
 
 /* ── mutations ─────────────────────────────────────────────────────────────*/
 export function useRunAgent() {

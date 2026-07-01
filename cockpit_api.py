@@ -459,6 +459,8 @@ def dispatch(h) -> bool:
         return _ok(h, bridge.git_view())
     if method == "GET" and path == "/api/bridge/skp":
         return _ok(h, bridge.skp_view())
+    if method == "GET" and path == "/api/bridge/gate/stream":
+        return _bridge_gate_stream(h)
     if method == "GET" and path == "/api/runs":
         _seed_runs()
         with _LOCK:   # snapshot consistente (RUNS é mutado por _runner/_start_run)
@@ -540,6 +542,74 @@ def _decide(h, did: str, body: dict) -> bool:
             except (URLError, HTTPError, OSError, json.JSONDecodeError) as e:
                 return _ok(h, {"ok": False, "error": "upstream_failed", "detail": str(e)}, 502)
     return _ok(h, {"ok": True, "id": did, "choice": choice, "upstream": applied})
+
+
+def _bridge_gate_stream(h) -> bool:
+    """SSE: tail -f do audit.jsonl → cada ACESSO ao gate (consult/heartbeat) ao vivo, igual o feed
+    'Acontecendo agora' mas do ORÁCULO. Emite um 'seed' com a contagem atual, depois só as linhas
+    novas conforme aparecem. Não toca no :8765 — só segue o arquivo."""
+    path = bridge._audit_path()
+    h.send_response(200)
+    h.send_header("Content-Type", "text/event-stream; charset=utf-8")
+    h.send_header("Cache-Control", "no-cache")
+    h.send_header("Connection", "keep-alive")
+    h.send_header("X-Accel-Buffering", "no")
+    h.end_headers()
+    try:
+        seed = bridge.gate_view()
+        h.wfile.write(("event: seed\ndata: " + json.dumps(
+            {"consultCount": seed.get("consultCount", 0),
+             "lastActivityAgeS": seed.get("lastActivityAgeS")}, ensure_ascii=False) + "\n\n").encode())
+        h.wfile.flush()
+    except OSError:
+        return True
+    try:
+        pos = path.stat().st_size if path.exists() else 0
+    except OSError:
+        pos = 0
+    deadline = time.time() + 300
+    ticks = 0
+    try:
+        while time.time() < deadline:
+            emitted = False
+            try:
+                size = path.stat().st_size if path.exists() else 0
+            except OSError:
+                size = 0
+            if size < pos:                      # arquivo rotou/truncou → recomeça do início
+                pos = 0
+            if size > pos:
+                with path.open("rb") as fh:
+                    fh.seek(pos)
+                    chunk = fh.read()
+                    pos = fh.tell()
+                for raw in chunk.decode("utf-8", "replace").splitlines():
+                    if not raw.strip():
+                        continue
+                    try:
+                        d = json.loads(raw)
+                    except ValueError:
+                        continue
+                    ev = {"kind": d.get("kind"), "ts": d.get("t") or d.get("ts")}
+                    if d.get("kind") == "consult":
+                        ev.update({"model": d.get("model"), "tier": d.get("tier"),
+                                   "durSec": bridge._num(d.get("dur_sec")),
+                                   "qChars": bridge._int(d.get("q_chars")),
+                                   "aChars": bridge._int(d.get("a_chars"))})
+                    elif d.get("kind") == "heartbeat":
+                        ev.update({"session": d.get("session_id") or d.get("session"),
+                                   "cycle": d.get("cycle")})
+                    h.wfile.write(("data: " + json.dumps(ev, ensure_ascii=False) + "\n\n").encode())
+                    h.wfile.flush()
+                    emitted = True
+            ticks += 1
+            if not emitted and ticks % 6 == 0:  # heartbeat SSE (detecta desconexão)
+                h.wfile.write(b": keep-alive\n\n")
+                h.wfile.flush()
+            time.sleep(0.5)
+    except (BrokenPipeError, ConnectionResetError, OSError):
+        pass
+    return True
 
 
 def _runs_logs(h, rid: str, query: dict) -> bool:

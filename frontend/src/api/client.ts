@@ -9,6 +9,7 @@ import type {
   FileEventsResponse, FileActivityEvent,
   NocLedgerResponse, NocStatusResponse,
   BridgeHealth, BridgeGate, BridgeSessions, BridgeGit, BridgeSkp,
+  GateAccessEvent, GateStreamSeed,
 } from "./types";
 import { mocks } from "./mocks";
 
@@ -230,6 +231,36 @@ export function streamFileEvents(
       es.close();
       onError?.();
     }
+  };
+  return () => es.close();
+}
+
+/* ── SSE: ACESSOS ao gate ao vivo (tail do audit.jsonl) ─────────────────────-*/
+export function streamGateAccess(
+  onEvent: (e: GateAccessEvent) => void,
+  onSeed?: (seed: GateStreamSeed) => void,
+  onError?: () => void,
+): () => void {
+  if (USE_MOCKS) {
+    onSeed?.({ consultCount: 12, lastActivityAgeS: 42 });
+    let i = 0;
+    const t = setInterval(() => {
+      onEvent(i % 3 === 0
+        ? { kind: "consult", ts: Date.now() / 1000, model: "claude-opus-4-8", tier: "deep", durSec: 30 + i, qChars: 420, aChars: 1500 }
+        : { kind: "heartbeat", ts: Date.now() / 1000, session: "74e148f0", cycle: 10 + i });
+      i++;
+    }, 2200);
+    return () => clearInterval(t);
+  }
+  const es = new EventSource(`/api/bridge/gate/stream`);
+  es.addEventListener("seed", (ev) => {
+    try { onSeed?.(JSON.parse((ev as MessageEvent).data) as GateStreamSeed); } catch { /* ignora */ }
+  });
+  es.onmessage = (ev) => {
+    try { onEvent(JSON.parse(ev.data) as GateAccessEvent); } catch { /* keep-alive/malformada */ }
+  };
+  es.onerror = () => {
+    if (es.readyState === EventSource.CLOSED) { es.close(); onError?.(); }
   };
   return () => es.close();
 }

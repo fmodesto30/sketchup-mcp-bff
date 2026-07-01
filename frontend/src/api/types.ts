@@ -590,6 +590,22 @@ export interface BridgeGate {
   consultCount: number;
   lastActivityAgeS: number | null;
 }
+/** um ACESSO ao gate ao vivo (linha nova do audit.jsonl, via SSE). */
+export interface GateAccessEvent {
+  kind: "consult" | "heartbeat" | string;
+  ts: number;
+  model?: string | null;
+  tier?: string | null;
+  durSec?: number | null;
+  qChars?: number | null;
+  aChars?: number | null;
+  session?: string | null;
+  cycle?: number | null;
+}
+export interface GateStreamSeed {
+  consultCount: number;
+  lastActivityAgeS: number | null;
+}
 export interface ClaudeSession {
   id: string;
   project: string;
