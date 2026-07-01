@@ -8,6 +8,7 @@ import type {
   WorkflowsResponse, RunTriggerResponse, LogLine, StudioState,
   FileEventsResponse, FileActivityEvent,
   NocLedgerResponse, NocStatusResponse,
+  BridgeHealth, BridgeGate, BridgeSessions, BridgeGit, BridgeSkp,
 } from "./types";
 import { mocks } from "./mocks";
 
@@ -122,6 +123,41 @@ export const api = {
       lock: { state: "free", alive: false, label: "ocioso (mock)" },
     }) as NocStatusResponse);
     return http("/api/noc/status");
+  },
+  // ── Oráculo/:8765 espelhado por ARQUIVO (bridge_mirror) ──────────────────────
+  async bridgeHealth(): Promise<BridgeHealth> {
+    if (USE_MOCKS) return delay().then(() => ({
+      level: "YELLOW", reasons: ["2 repos com mudança não-commitada (mock)"],
+      signals: { visualReviewPending: 0, dirtyRepos: 2, activeSessions: 3, gateLastActivityS: 42, nocLock: "free" },
+    }) as BridgeHealth);
+    return http("/api/bridge/health");
+  },
+  async bridgeGate(): Promise<BridgeGate> {
+    if (USE_MOCKS) return delay().then(() => ({
+      live: true, consultCount: 12, lastActivityAgeS: 42,
+      consults: [{ ts: Date.now() / 1000, model: "claude-opus-4-8", tier: "deep", effort: "xhigh", mode: "default", qChars: 424, aChars: 1907, durSec: 72.6 }],
+    }) as BridgeGate);
+    return http("/api/bridge/gate");
+  },
+  async bridgeSessions(): Promise<BridgeSessions> {
+    if (USE_MOCKS) return delay().then(() => ({
+      live: true, total: 84, active: 3,
+      sessions: [{ id: "74e148f0", project: "E--Claude", idleSec: 2, state: "ACTIVE" }],
+    }) as BridgeSessions);
+    return http("/api/bridge/sessions");
+  },
+  async bridgeGit(): Promise<BridgeGit> {
+    if (USE_MOCKS) return delay().then(() => ({
+      live: true, worktrees: 5, dirtyRepos: ["sketchup-mcp"],
+      repos: [{ name: "sketchup-mcp", branch: "chore/ci-gate", dirty: 11, lastCommit: "b0f11e4 chore(ci)" }],
+    }) as BridgeGit);
+    return http("/api/bridge/git");
+  },
+  async bridgeSkp(): Promise<BridgeSkp> {
+    if (USE_MOCKS) return delay().then(() => ({
+      live: true, plants: [{ plant: "planta_74", skpCount: 7, latestSkp: "planta_74_furnished.skp", latestMtime: Date.now() / 1000, renders: 217 }],
+    }) as BridgeSkp);
+    return http("/api/bridge/skp");
   },
 };
 

@@ -36,6 +36,7 @@ from urllib.request import Request, urlopen
 
 import file_activity as fa  # Live System Map — eventos de atividade + scanner dos repos
 import noc_mirror as noc  # NOC mirror — le os arquivos planos do atuador (vidro read-only)
+import bridge_mirror as bridge  # ORACULO/:8765 mirror — audit/sessoes/git/skp por arquivo (vidro)
 
 UPSTREAM = os.environ.get("BFF_UPSTREAM", "http://127.0.0.1:8781").rstrip("/")
 OLLAMA = os.environ.get("BFF_OLLAMA", "http://127.0.0.1:11434").rstrip("/")
@@ -446,6 +447,18 @@ def dispatch(h) -> bool:
         return _ok(h, noc.ledger_view())
     if method == "GET" and path == "/api/noc/status":
         return _ok(h, noc.status_view())
+    # ORACULO/:8765 (vidro read-only): saude GYR + gate-ledger + sessoes + git + skp — de arquivo,
+    # sem tocar no :8765 vivo. E o que torna a pagina UNICA e dispensa o dashboard.html do :8765.
+    if method == "GET" and path == "/api/bridge/health":
+        return _ok(h, bridge.health_view())
+    if method == "GET" and path == "/api/bridge/gate":
+        return _ok(h, bridge.gate_view())
+    if method == "GET" and path == "/api/bridge/sessions":
+        return _ok(h, bridge.sessions_view())
+    if method == "GET" and path == "/api/bridge/git":
+        return _ok(h, bridge.git_view())
+    if method == "GET" and path == "/api/bridge/skp":
+        return _ok(h, bridge.skp_view())
     if method == "GET" and path == "/api/runs":
         _seed_runs()
         with _LOCK:   # snapshot consistente (RUNS é mutado por _runner/_start_run)

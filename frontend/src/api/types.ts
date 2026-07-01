@@ -560,3 +560,70 @@ export interface NocStatusResponse {
   taskCount: number;
   live: boolean;
 }
+
+/* ── Oráculo/:8765 espelhado por ARQUIVO (bridge_mirror — vidro read-only) ──────────────*/
+export interface BridgeHealth {
+  level: "GREEN" | "YELLOW" | "RED";
+  reasons: string[];
+  signals: {
+    visualReviewPending: number;
+    dirtyRepos: number;
+    activeSessions: number | null;
+    gateLastActivityS: number | null;
+    nocLock: string | null;
+  };
+}
+export interface GateConsult {
+  ts: number;
+  model?: string | null;
+  tier?: string | null;
+  effort?: string | null;
+  mode?: string | null;
+  qChars?: number | null;
+  aChars?: number | null;
+  durSec?: number | null;
+}
+export interface BridgeGate {
+  live: boolean;
+  reason?: string;
+  consults: GateConsult[];
+  consultCount: number;
+  lastActivityAgeS: number | null;
+}
+export interface ClaudeSession {
+  id: string;
+  project: string;
+  idleSec: number;
+  state: "ACTIVE" | "IDLE" | "STOPPED";
+}
+export interface BridgeSessions {
+  live: boolean;
+  reason?: string;
+  sessions: ClaudeSession[];
+  total: number;
+  active: number;
+}
+export interface GitRepo {
+  name: string;
+  branch: string;
+  dirty: number;
+  lastCommit: string;
+}
+export interface BridgeGit {
+  live: boolean;
+  repos: GitRepo[];
+  worktrees: number;
+  dirtyRepos: string[];
+}
+export interface SkpPlant {
+  plant: string;
+  skpCount: number;
+  latestSkp: string;
+  latestMtime: number;
+  renders: number;
+}
+export interface BridgeSkp {
+  live: boolean;
+  reason?: string;
+  plants: SkpPlant[];
+}

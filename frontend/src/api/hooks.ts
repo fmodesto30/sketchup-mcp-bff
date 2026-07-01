@@ -19,6 +19,11 @@ export const qk = {
   state: ["state"] as const,
   nocLedger: ["noc", "ledger"] as const,
   nocStatus: ["noc", "status"] as const,
+  bridgeHealth: ["bridge", "health"] as const,
+  bridgeGate: ["bridge", "gate"] as const,
+  bridgeSessions: ["bridge", "sessions"] as const,
+  bridgeGit: ["bridge", "git"] as const,
+  bridgeSkp: ["bridge", "skp"] as const,
 };
 
 type QOpts<T> = Omit<UseQueryOptions<T, Error, T>, "queryKey" | "queryFn">;
@@ -55,6 +60,18 @@ export const useNocLedger = () =>
 
 export const useNocStatus = () =>
   useQuery({ queryKey: qk.nocStatus, queryFn: api.nocStatus, refetchInterval: 6000 });
+
+/* ── Oráculo/:8765 espelhado por arquivo ────────────────────────────────────-*/
+export const useBridgeHealth = () =>
+  useQuery({ queryKey: qk.bridgeHealth, queryFn: api.bridgeHealth, refetchInterval: 6000 });
+export const useBridgeGate = () =>
+  useQuery({ queryKey: qk.bridgeGate, queryFn: api.bridgeGate, refetchInterval: 8000 });
+export const useBridgeSessions = () =>
+  useQuery({ queryKey: qk.bridgeSessions, queryFn: api.bridgeSessions, refetchInterval: 6000 });
+export const useBridgeGit = () =>
+  useQuery({ queryKey: qk.bridgeGit, queryFn: api.bridgeGit, refetchInterval: 10000 });
+export const useBridgeSkp = () =>
+  useQuery({ queryKey: qk.bridgeSkp, queryFn: api.bridgeSkp, refetchInterval: 15000 });
 
 /* ── mutations ─────────────────────────────────────────────────────────────*/
 export function useRunAgent() {

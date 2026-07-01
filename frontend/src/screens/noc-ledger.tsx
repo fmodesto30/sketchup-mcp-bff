@@ -1,6 +1,12 @@
 import { motion } from "framer-motion";
-import { GitBranch, ServerCog, ShieldCheck, CircleDot, FileCheck2 } from "lucide-react";
-import { useNocLedger, useNocStatus } from "@/api/hooks";
+import {
+  GitBranch, ServerCog, ShieldCheck, CircleDot, FileCheck2,
+  Activity, Boxes, Cpu, FolderGit2, MessageSquare,
+} from "lucide-react";
+import {
+  useNocLedger, useNocStatus,
+  useBridgeHealth, useBridgeGate, useBridgeSessions, useBridgeGit, useBridgeSkp,
+} from "@/api/hooks";
 import type { NocTask, NocLockState } from "@/api/types";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,8 +48,10 @@ export default function NocLedger() {
 
   return (
     <>
-      <PageHeader title="NOC — atuador autônomo"
-        subtitle="Runs REAIS do atuador, lidos do ledger no disco (.ai_bridge/noc/actions.jsonl). Não é stub." />
+      <PageHeader title="NOC — Sistema & atuador"
+        subtitle="Tudo numa página: saúde do projeto, gate do oráculo, sessões, git e .skp — lidos de ARQUIVO (:8765 nunca é tocado), + os runs reais do atuador." />
+
+      <SistemaSection />
 
       {/* faixa de honestidade */}
       <Card className="mb-4 border-blue/20 bg-blue/[0.04]">
@@ -88,6 +96,119 @@ export default function NocLedger() {
         </motion.div>
       )}
     </>
+  );
+}
+
+const HEALTH_TONE: Record<string, string> = {
+  GREEN: "text-ok border-ok/30 bg-ok/10",
+  YELLOW: "text-warn border-warn/30 bg-warn/10",
+  RED: "text-danger border-danger/30 bg-danger/10",
+};
+
+function fmtAge(s: number): string {
+  if (s < 90) return `${Math.round(s)}s atrás`;
+  if (s < 5400) return `${Math.round(s / 60)}min atrás`;
+  return `${Math.round(s / 3600)}h atrás`;
+}
+
+/** Sistema: saúde GYR + git + sessões + gate + .skp — tudo lido de ARQUIVO (o :8765 nunca é tocado).
+ *  É o que absorve o dashboard.html do :8765 na página única. */
+function SistemaSection() {
+  const health = useBridgeHealth();
+  const git = useBridgeGit();
+  const sessions = useBridgeSessions();
+  const gate = useBridgeGate();
+  const skp = useBridgeSkp();
+  const h = health.data;
+
+  return (
+    <div className="mb-5 space-y-3">
+      <Card className={cn("border", h ? HEALTH_TONE[h.level] : "")}>
+        <CardContent className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-3">
+          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm font-bold",
+            h ? HEALTH_TONE[h.level] : "")}>
+            <CircleDot className="size-3.5" /> {h?.level ?? "…"}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {(h?.reasons ?? []).join(" · ") || "lendo a saúde do projeto…"}
+          </span>
+          {h && (
+            <span className="ml-auto flex flex-wrap gap-3 text-xs text-muted-foreground/70">
+              <span>review pendente: {h.signals.visualReviewPending}</span>
+              <span>repos sujos: {h.signals.dirtyRepos}</span>
+              <span>sessões ativas: {h.signals.activeSessions ?? "—"}</span>
+            </span>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <Card><CardContent className="pt-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <FolderGit2 className="size-4 text-blue" /> Git — {git.data?.repos.length ?? 0} repos · {git.data?.worktrees ?? 0} worktrees
+          </div>
+          <div className="space-y-1.5">
+            {(git.data?.repos ?? []).map((r) => (
+              <div key={r.name} className="flex items-center gap-2 text-xs">
+                <code className="truncate text-muted-foreground/80">{r.name}</code>
+                <span className="inline-flex items-center gap-1 truncate text-muted-foreground/60">
+                  <GitBranch className="size-3 shrink-0" />{r.branch}
+                </span>
+                {r.dirty > 0 && <Badge variant="outline" className="ml-auto shrink-0 border-warn/30 text-warn">{r.dirty} sujo</Badge>}
+              </div>
+            ))}
+          </div>
+        </CardContent></Card>
+
+        <Card><CardContent className="pt-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <Activity className="size-4 text-ok" /> Sessões Claude — {sessions.data?.active ?? 0} ativas / {sessions.data?.total ?? 0}
+          </div>
+          <div className="space-y-1.5">
+            {(sessions.data?.sessions ?? []).filter((s) => s.state !== "STOPPED").slice(0, 8).map((s) => (
+              <div key={s.id + s.project} className="flex items-center gap-2 text-xs">
+                <span className={cn("size-1.5 shrink-0 rounded-full", s.state === "ACTIVE" ? "bg-ok animate-pulse-dot" : "bg-warn")} />
+                <code className="truncate text-muted-foreground/70">{s.project}</code>
+                <span className="ml-auto shrink-0 text-muted-foreground/50">{s.state === "ACTIVE" ? "agora" : `${Math.round(s.idleSec / 60)}min`}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent></Card>
+
+        <Card><CardContent className="pt-4">
+          <div className="mb-1 flex items-center gap-2 text-sm font-semibold">
+            <MessageSquare className="size-4 text-blue" /> Gate do oráculo — {gate.data?.consultCount ?? 0} consults
+          </div>
+          <p className="mb-2 text-[11px] text-muted-foreground/50">
+            metadado só (sem prompt = privacidade) · última: {gate.data?.lastActivityAgeS != null ? fmtAge(gate.data.lastActivityAgeS) : "—"}
+          </p>
+          <div className="space-y-1">
+            {(gate.data?.consults ?? []).slice(0, 5).map((c, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                <Cpu className="size-3 shrink-0" /><code className="truncate">{c.model}</code>
+                <Badge variant="outline" className="shrink-0">{c.tier}</Badge>
+                <span className="ml-auto shrink-0">{c.durSec}s · {c.qChars}→{c.aChars}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent></Card>
+
+        <Card><CardContent className="pt-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <Boxes className="size-4 text-blue" /> .skp por planta
+          </div>
+          <div className="space-y-1.5">
+            {(skp.data?.plants ?? []).map((p) => (
+              <div key={p.plant} className="flex items-center gap-2 text-xs">
+                <code className="truncate text-muted-foreground/80">{p.plant}</code>
+                <Badge variant="outline" className="shrink-0">{p.skpCount} .skp</Badge>
+                <span className="ml-auto shrink-0 text-muted-foreground/50">{p.renders} renders</span>
+              </div>
+            ))}
+          </div>
+        </CardContent></Card>
+      </div>
+    </div>
   );
 }
 
